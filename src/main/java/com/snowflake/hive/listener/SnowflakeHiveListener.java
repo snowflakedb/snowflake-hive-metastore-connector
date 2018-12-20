@@ -3,6 +3,7 @@
  */
 package com.snowflake.hive.listener;
 
+import com.snowflake.conf.SnowflakeJdbcConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
@@ -19,9 +20,13 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   private static final Logger log =
       LoggerFactory.getLogger(SnowflakeHiveListener.class);
 
+  private static SnowflakeJdbcConf snowflakeJdbcConf;
+
   public SnowflakeHiveListener(Configuration config)
   {
     super(config);
+    // generate the snowflake jdbc conf
+    snowflakeJdbcConf = new SnowflakeJdbcConf();
     log.info("SnowflakeHiveListener created");
   }
 
@@ -35,7 +40,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     log.info("SnowflakeHiveListener: CreateTableEvent received");
     if (tableEvent.getStatus())
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent);
+      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent, snowflakeJdbcConf);
     }
   }
 }
