@@ -8,6 +8,7 @@ import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
+import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,20 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     if (tableEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent, snowflakeJdbcConf);
+    }
+  }
+
+  /**
+   * The listener for the drop table command
+   * @param tableEvent
+   */
+  @Override
+  public void onDropTable(DropTableEvent tableEvent)
+  {
+    log.info("SnowflakeHiveListener: DropTableEvent received");
+    if (tableEvent.getStatus())
+    {
+      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent);
     }
   }
 }
