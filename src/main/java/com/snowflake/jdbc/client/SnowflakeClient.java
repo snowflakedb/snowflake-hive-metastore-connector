@@ -3,6 +3,7 @@
  */
 package com.snowflake.jdbc.client;
 
+import com.snowflake.conf.SnowflakeJdbcConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.util.CommandGenerator;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
@@ -35,9 +36,12 @@ public class SnowflakeClient
    *    the Hive command
    * 2. Get the connection to a Snowflake account
    * 3. Run the query on Snowflake
-   * @param event
+   * @param event - the hive event
+   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
    */
-  public static void createAndExecuteEventForSnowflake(ListenerEvent event)
+  public static void createAndExecuteEventForSnowflake(
+      ListenerEvent event,
+      SnowflakeJdbcConf snowflakeJdbcConf)
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
@@ -61,7 +65,7 @@ public class SnowflakeClient
     // Get connection
     log.info("Getting connection to the Snowflake");
     // TODO: retry in the case of failure
-    try (Connection connection = getConnection())
+    try (Connection connection = getConnection(snowflakeJdbcConf))
     {
       commandList.forEach(commandStr ->
       {
@@ -107,10 +111,11 @@ public class SnowflakeClient
    * Get the connection to the snowflake account.
    * First finds a snowflake driver and connects to Snowflake using the
    * given properties
+   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
    * @return
    * @throws SQLException
    */
-  private static Connection getConnection()
+  private static Connection getConnection(SnowflakeJdbcConf snowflakeJdbcConf)
       throws SQLException
   {
     try
@@ -123,18 +128,25 @@ public class SnowflakeClient
     }
 
     // build connection properties
-    // TODO: read properties from config file
     Properties properties = new Properties();
-    properties.put("user", "");
-    properties.put("password", "");
-    properties.put("account", "");
-    properties.put("warehouse", "");
-    properties.put("db", "");
-    properties.put("schema", "");
 
-    // create a new connection
-    String connectStr = "jdbc:snowflake://accountName.snowflakecomputing.com";
+    snowflakeJdbcConf.forEach(conf ->
+      {
+        SnowflakeJdbcConf.ConfVars confVar =
+            SnowflakeJdbcConf.ConfVars.findByName(conf.getKey());
+        if (confVar == null)
+        {
+          properties.put(conf.getKey(), conf.getValue());
+        }
+        else
+        {
+          properties.put(confVar.getSnowflakePropertyName(), conf.getValue());
+        }
+
+      });
+    String connectStr = snowflakeJdbcConf.get(
+        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
+
     return DriverManager.getConnection(connectStr, properties);
   }
-
 }
