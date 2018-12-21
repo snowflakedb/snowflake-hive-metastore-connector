@@ -5,8 +5,10 @@ package com.snowflake.core.util;
 
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.CreateExternalTable;
+import com.snowflake.core.commands.DropExternalTable;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
+import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,11 @@ public class CommandGenerator
     {
       log.info("Generating Create Table command");
       command = new CreateExternalTable((CreateTableEvent)event);
+    }
+    else if (event instanceof DropTableEvent)
+    {
+      log.info("Generating Drop Table command");
+      command = new DropExternalTable((DropTableEvent)event);
     }
 
     return command;
