@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ */
 package com.snowflake.core.commands;
 
 import com.snowflake.core.util.HiveToSnowflakeType;
