@@ -6,7 +6,6 @@ package com.snowflake.core.commands;
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.StageCredentialUtil;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
@@ -30,6 +29,11 @@ public class CreateExternalTable implements Command
     this.hiveConf = createTableEvent.getHandler().getConf();
   }
 
+  /**
+   * Generate the create stage command
+   * @return
+   * @throws Exception
+   */
   private String generateCreateStageCommand()
   throws Exception
   {
@@ -53,6 +57,12 @@ public class CreateExternalTable implements Command
     return sb.toString();
   }
 
+  /**
+   * Generate the string for a column to be used in the query
+   * @param columnSchema
+   * @return
+   * @throws Exception
+   */
   private String generateColumnStr(FieldSchema columnSchema)
   throws Exception
   {
@@ -70,6 +80,9 @@ public class CreateExternalTable implements Command
     return sb.toString();
   }
 
+  /**
+   * Generate the create table command
+   */
   private String generateCreateTableCommand()
   throws Exception
   {
@@ -130,6 +143,13 @@ public class CreateExternalTable implements Command
     return sb.toString();
   }
 
+  /**
+   * Generates the commands for create external table
+   * Generates a create stage command followed by a create
+   * external table command
+   * @return
+   * @throws Exception
+   */
   public List<String> generateCommands()
       throws Exception
   {

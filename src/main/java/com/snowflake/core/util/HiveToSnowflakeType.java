@@ -10,6 +10,9 @@ import com.google.common.collect.ImmutableMap;
  */
 public class HiveToSnowflakeType
 {
+  /**
+   * The mapping from a hive datatype to a snowflake datatype
+   */
   public static ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
       new ImmutableMap.Builder<String, String>()
       .put("BOOLEAN", "BOOLEAN")
@@ -28,6 +31,12 @@ public class HiveToSnowflakeType
       .put("DECIMAL", "DECIMAL")
       .build();
 
+  /**
+   * converts a hive column data type to a snowflake datatype
+   * @param hiveType
+   * @return
+   * @throws Exception
+   */
   public static String toSnowflakeColumnDataType(String hiveType)
   throws Exception
   {
