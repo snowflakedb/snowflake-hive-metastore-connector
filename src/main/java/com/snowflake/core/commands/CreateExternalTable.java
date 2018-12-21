@@ -3,6 +3,7 @@ package com.snowflake.core.commands;
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.StageCredentialUtil;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
@@ -23,7 +24,7 @@ public class CreateExternalTable implements Command
   public CreateExternalTable(CreateTableEvent createTableEvent)
   {
     this.hiveTable = createTableEvent.getTable();
-    this.hiveConf = createTableEvent.getHandler().getHiveConf();
+    this.hiveConf = createTableEvent.getHandler().getConf();
   }
 
   private String generateCreateStageCommand()
