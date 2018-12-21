@@ -41,7 +41,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     log.info("SnowflakeHiveListener: CreateTableEvent received");
     if (tableEvent.getStatus())
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent, snowflakeJdbcConf);
+      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
+          snowflakeJdbcConf);
     }
   }
 
@@ -55,7 +56,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     log.info("SnowflakeHiveListener: DropTableEvent received");
     if (tableEvent.getStatus())
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent);
+      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
+          snowflakeJdbcConf);
     }
   }
 }

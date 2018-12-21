@@ -37,24 +37,31 @@ public class CreateTableTest
     Table table = new Table();
 
     table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(new FieldSchema("partcol", "int", null),
+    table.setPartitionKeys(Arrays.asList(
+        new FieldSchema("partcol", "int", null),
         new FieldSchema("name", "string", null)));
     table.setSd(new StorageDescriptor());
-    table.getSd().setCols(Arrays.asList(new FieldSchema("partcol", "int", null),
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("partcol", "int", null),
         new FieldSchema("name", "string", null)));
     table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
     table.getSd().setLocation("s3n://bucketname/path/to/table");
 
     // Mock the HMSHandler and configurations
     Configuration mockConfig = PowerMockito.mock(Configuration.class);
-    HiveMetaStore.HMSHandler mockHandler = PowerMockito.mock(HiveMetaStore.HMSHandler.class);
-    PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId")).thenReturn("{accessKeyId}");
-    PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey")).thenReturn("{secretAccessKey}");
+    HiveMetaStore.HMSHandler mockHandler =
+        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
+    PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
+        .thenReturn("{accessKeyId}");
+    PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
+        .thenReturn("{secretAccessKey}");
     PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
 
-    CreateTableEvent createTableEvent = new CreateTableEvent(table, true, mockHandler);
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, mockHandler);
 
-    CreateExternalTable createExternalTable = new CreateExternalTable(createTableEvent);
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
