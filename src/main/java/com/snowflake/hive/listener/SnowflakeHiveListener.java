@@ -7,6 +7,7 @@ import com.snowflake.conf.SnowflakeJdbcConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
+import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 import org.slf4j.Logger;
@@ -57,6 +58,21 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     if (tableEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
+          snowflakeJdbcConf);
+    }
+  }
+
+  /**
+   * The listener for the add partition command
+   * @param partitionEvent
+   */
+  @Override
+  public void onAddPartition(AddPartitionEvent partitionEvent)
+  {
+    log.info("SnowflakeHiveListener: AddPartitionEvent received");
+    if (partitionEvent.getStatus())
+    {
+      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
           snowflakeJdbcConf);
     }
   }

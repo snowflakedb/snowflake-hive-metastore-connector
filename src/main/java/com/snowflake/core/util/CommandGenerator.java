@@ -3,10 +3,12 @@
  */
 package com.snowflake.core.util;
 
+import com.snowflake.core.commands.AddPartition;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.core.commands.DropExternalTable;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
+import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
@@ -42,6 +44,11 @@ public class CommandGenerator
     {
       log.info("Generating Drop Table command");
       command = new DropExternalTable((DropTableEvent)event);
+    }
+    else if (event instanceof AddPartitionEvent)
+    {
+      log.info("Generating Add Partition command");
+      command = new AddPartition((AddPartitionEvent)event);
     }
 
     return command;
