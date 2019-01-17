@@ -96,6 +96,10 @@ public class CreateExternalTable implements Command
 
     // columns
     List<FieldSchema> cols = hiveTable.getSd().getCols();
+    List<FieldSchema> partCols = hiveTable.getPartitionKeys();
+
+    // with Snowflake, partition columns must also be defined as normal columns
+    cols.addAll(partCols);
 
     for (int i = 0; i < cols.size(); i++)
     {
@@ -113,7 +117,7 @@ public class CreateExternalTable implements Command
     // partition columns
     sb.append("partition by (");
 
-    List<FieldSchema> partCols = hiveTable.getPartitionKeys();
+
     for (int i = 0; i < partCols.size(); ++i)
     {
       if (i == partCols.size() - 1)
@@ -137,7 +141,9 @@ public class CreateExternalTable implements Command
     // file_format
     sb.append("file_format=");
     sb.append(HiveToSnowflakeType.toSnowflakeFileFormat(
-        hiveTable.getSd().getInputFormat()));
+        hiveTable.getSd().getInputFormat(),
+        hiveTable.getSd().getSerdeInfo(),
+        hiveTable.getParameters()));
     sb.append(";");
 
     return sb.toString();
