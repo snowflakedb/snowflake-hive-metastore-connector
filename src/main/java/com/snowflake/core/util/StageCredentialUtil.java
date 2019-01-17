@@ -62,7 +62,16 @@ public enum StageCredentialUtil
         // get the access keys
         String prefix = getLocationPrefix(url);
         String accessKey = config.get("fs." + prefix + ".awsAccessKeyId");
+        if (accessKey == null)
+        {
+          accessKey = config.get("fs." + prefix + ".access.key");
+        }
+
         String secretKey = config.get("fs." + prefix + ".awsSecretAccessKey");
+        if (secretKey == null)
+        {
+          secretKey = config.get("fs." + prefix + ".secret.key");
+        }
 
         StringBuilder sb = new StringBuilder();
         sb.append("credentials=(");
