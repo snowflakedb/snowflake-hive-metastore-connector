@@ -9,6 +9,8 @@ import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +51,12 @@ public class HiveToSnowflakeType
       .add("PARQUET")
       .add("XML")
       .build();
+
+  /**
+   * Regex pattern to match a set of strings, e.g. (CSV|JSON|PARQUET)
+   */
+  private static Pattern sfFileFmtTypeRegex = Pattern.compile(
+      "(" + String.join("|", snowflakeFileFormatTypes) + ")");
 
   /**
    * converts a hive column data type to a snowflake datatype
@@ -170,7 +178,7 @@ public class HiveToSnowflakeType
    * @throws Exception
    */
   public static String toSnowflakeFileFormatType(String serDeLib,
-                                                  String hiveFileFormat)
+                                                 String hiveFileFormat)
   throws Exception
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
@@ -178,13 +186,10 @@ public class HiveToSnowflakeType
     //   org.apache.hive.hcatalog.data.JsonSerDe -> JSON
     //   org.apache.hadoop.hive.serde2.JsonSerDe -> JSON
     //   org.apache.hadoop.hive.serde2.OpenCSVSerde -> CSV
-    for (String sfFileFmtType : snowflakeFileFormatTypes)
-    {
-      // Assume sfFileFmtType is uppercase
-      if (serDeLib.toUpperCase().contains(sfFileFmtType))
-      {
-        return sfFileFmtType;
-      }
+
+    Matcher matcher = sfFileFmtTypeRegex.matcher(serDeLib.toUpperCase());
+    if (matcher.find()) {
+      return matcher.group(1);
     }
 
     // For textfiles types with SerDe's like LazySimpleSerDe, fall back to CSV
