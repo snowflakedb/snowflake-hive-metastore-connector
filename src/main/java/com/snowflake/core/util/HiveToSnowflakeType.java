@@ -90,22 +90,19 @@ public class HiveToSnowflakeType
 
   /**
    * converts a hive file format to a snowflake file format
-   * @param hiveFileFormat
+   * @param sfFileFmtType
    * @param serDeInfo
    * @param tableProps
    * @return
    * @throws Exception
    */
-  public static String toSnowflakeFileFormat(String hiveFileFormat,
+  public static String toSnowflakeFileFormat(String sfFileFmtType,
                                              SerDeInfo serDeInfo,
                                              Map<String, String> tableProps)
   throws Exception
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
     Map<String, String> serDeParams = serDeInfo.getParameters();
-
-    String sfFileFmtType = toSnowflakeFileFormatType(
-        serDeInfo.getSerializationLib(), hiveFileFormat);
     snowflakeFileFormatOptions.put("TYPE", sfFileFmtType);
 
     // Each Snowflake file format type has its own set of options. Attempt to
@@ -116,19 +113,22 @@ public class HiveToSnowflakeType
         String fieldDelimiter = serDeParams.getOrDefault("field.delim", null);
         if (fieldDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("FIELD_DELIMITER", fieldDelimiter);
+          snowflakeFileFormatOptions.put("FIELD_DELIMITER",
+                                         String.format("'%s'", fieldDelimiter));
         }
 
         String lineDelimiter = serDeParams.getOrDefault("line.delim", null);
         if (lineDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("RECORD_DELIMITER", lineDelimiter);
+          snowflakeFileFormatOptions.put("RECORD_DELIMITER",
+                                         String.format("'%s'", lineDelimiter));
         }
 
         String escape = serDeParams.getOrDefault("escape.delim", null);
         if (escape != null)
         {
-          snowflakeFileFormatOptions.put("ESCAPE", escape);
+          snowflakeFileFormatOptions.put("ESCAPE",
+                                         String.format("'%s'", escape));
         }
         break;
       case "PARQUET":
@@ -169,7 +169,7 @@ public class HiveToSnowflakeType
    * @return
    * @throws Exception
    */
-  private static String toSnowflakeFileFormatType(String serDeLib,
+  public static String toSnowflakeFileFormatType(String serDeLib,
                                                   String hiveFileFormat)
   throws Exception
   {

@@ -60,10 +60,47 @@ public class CreateExternalTable implements Command
   /**
    * Generate the string for a column to be used in the query
    * @param columnSchema
+   * @param columnIndex
+   * @param snowflakeFileFormatType
    * @return
    * @throws Exception
    */
-  private String generateColumnStr(FieldSchema columnSchema)
+  private String generateColumnStr(FieldSchema columnSchema, int columnIndex,
+                                   String snowflakeFileFormatType)
+      throws Exception
+  {
+    String snowflakeType = HiveToSnowflakeType
+        .toSnowflakeColumnDataType(columnSchema.getType());
+    StringBuilder sb = new StringBuilder();
+    sb.append(columnSchema.getName());
+    sb.append(" ");
+    sb.append(snowflakeType);
+    sb.append(" as (VALUE:");
+    if (snowflakeFileFormatType.equals("CSV"))
+    {
+      // For CSV, Snowflake populates VALUE with c1, c2, ... for each column
+      sb.append("c");
+      sb.append((columnIndex+1));
+    }
+    else
+    {
+      // Note: With Snowflake, keys in VALUE are case-sensitive. Rely on the
+      //       user to provide columns with casing that match the data.
+      sb.append(columnSchema.getName());
+    }
+    sb.append("::");
+    sb.append(snowflakeType);
+    sb.append(')');
+    return sb.toString();
+  }
+
+  /**
+   * Generate the string for a partition column to be used in the query
+   * @param columnSchema
+   * @return
+   * @throws Exception
+   */
+  private String generatePartitionColumnStr(FieldSchema columnSchema)
   throws Exception
   {
     String snowflakeType = HiveToSnowflakeType
@@ -98,35 +135,41 @@ public class CreateExternalTable implements Command
     List<FieldSchema> cols = hiveTable.getSd().getCols();
     List<FieldSchema> partCols = hiveTable.getPartitionKeys();
 
-    // with Snowflake, partition columns must also be defined as normal columns
-    cols.addAll(partCols);
+    // determine the file format type for Snowflake
+    String sfFileFmtType = HiveToSnowflakeType.toSnowflakeFileFormatType(
+        hiveTable.getSd().getSerdeInfo().getSerializationLib(),
+        hiveTable.getSd().getInputFormat());
 
+    // With Snowflake, partition columns are defined with normal columns
     for (int i = 0; i < cols.size(); i++)
     {
-      if (i == cols.size() - 1)
+      sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType));
+      if (!partCols.isEmpty() || i != cols.size() - 1)
       {
-        sb.append(generateColumnStr(cols.get(i)));
-      }
-      else
-      {
-        sb.append(generateColumnStr(cols.get(i)) + ",");
+        sb.append(",");
       }
     }
+
+    for (int i = 0; i < partCols.size(); i++)
+    {
+      sb.append(generatePartitionColumnStr(partCols.get(i)));
+      if (i != partCols.size() - 1)
+      {
+        sb.append(",");
+      }
+    }
+
     sb.append(")");
 
     // partition columns
     sb.append("partition by (");
 
-
     for (int i = 0; i < partCols.size(); ++i)
     {
-      if (i == partCols.size() - 1)
+      sb.append(partCols.get(i).getName());
+      if (i != partCols.size() - 1)
       {
-        sb.append(partCols.get(i).getName());
-      }
-      else
-      {
-        sb.append(partCols.get(i).getName() + ",");
+        sb.append(",");
       }
     }
     sb.append(")");
@@ -141,7 +184,7 @@ public class CreateExternalTable implements Command
     // file_format
     sb.append("file_format=");
     sb.append(HiveToSnowflakeType.toSnowflakeFileFormat(
-        hiveTable.getSd().getInputFormat(),
+        sfFileFmtType,
         hiveTable.getSd().getSerdeInfo(),
         hiveTable.getParameters()));
     sb.append(";");

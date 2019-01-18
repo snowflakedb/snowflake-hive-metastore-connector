@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,25 +32,213 @@ public class CreateTableTest
 {
   /**
    * A basic test for generating a create table command for a simple table
+   *
    * @throws Exception
    */
   @Test
   public void basicCreateTableGenerateCommandTest() throws Exception
   {
-    // create table
-    Table table = new Table();
+    Table table = initializeMockTable();
 
-    table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(
-        new FieldSchema("partcol", "int", null),
-        new FieldSchema("name", "string", null)));
-    table.setSd(new StorageDescriptor());
-    table.getSd().setCols(new ArrayList<FieldSchema>());
-    table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
-    table.getSd().setLocation("s3n://bucketname/path/to/table");
-    table.getSd().setSerdeInfo(new SerDeInfo());
-    table.getSd().getSerdeInfo().setParameters(new HashMap<>());
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
 
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "AWS_SECRET_KEY='{secretAccessKey}');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@t1 " +
+                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                 commands.get(1));
+  }
+
+
+  /**
+   * A test for generating a create table command for a table with file format
+   * type of CSV.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void csvCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    Map<String, String> serDeParams = new HashMap<>();
+    serDeParams.put("field.delim", "','");
+    serDeParams.put("line.delim", "'\n'");
+    serDeParams.put("escape.delim", "'$'");
+    table.getSd().getSerdeInfo().setParameters(serDeParams);
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "AWS_SECRET_KEY='{secretAccessKey}');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE EXTERNAL TABLE t1(" +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@t1 partition_type=user_specified " +
+                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'');",
+                 commands.get(1));
+  }
+
+  /**
+   * A test for generating a create table command for a table with file format
+   * type of Parquet.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void parquetCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    table.getSd().setInputFormat("parquet.hive.DeprecatedParquetInputFormat");
+    table.getSd().getSerdeInfo().setSerializationLib(
+        "parquet.hive.serde.ParquetHiveSerDe");
+    Map<String, String> serDeParams = new HashMap<>();
+    serDeParams.put("parquet.compression", "snappy");
+    table.getSd().getSerdeInfo().setParameters(serDeParams);
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "AWS_SECRET_KEY='{secretAccessKey}');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE EXTERNAL TABLE t1(" +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@t1 " +
+                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
+                 commands.get(1));
+  }
+
+  /**
+   * A test for generating a create table command for a table with additional
+   * columns that aren't partition columns.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void multiColumnCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "int", null),
+        new FieldSchema("col2", "string", null)));
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "AWS_SECRET_KEY='{secretAccessKey}');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE EXTERNAL TABLE t1(" +
+                     "col1 INT as (VALUE:c1::INT)," +
+                     "col2 STRING as (VALUE:c2::STRING)," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@t1 " +
+                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                 commands.get(1));
+  }
+
+  /**
+   * A test for generating a create table command for a table with additional
+   * columns that aren't partition columns. Uses Parquet.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void parquetMultiColumnCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "int", null),
+        new FieldSchema("col2", "string", null)));
+    table.getSd().setInputFormat("parquet.hive.DeprecatedParquetInputFormat");
+    table.getSd().getSerdeInfo().setSerializationLib(
+        "parquet.hive.serde.ParquetHiveSerDe");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "AWS_SECRET_KEY='{secretAccessKey}');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE EXTERNAL TABLE t1(" +
+                     "col1 INT as (VALUE:col1::INT)," +
+                     "col2 STRING as (VALUE:col2::STRING)," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@t1 " +
+                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
+                 commands.get(1));
+  }
+
+  /**
+   * Helper class to initialize the Hive metastore handler, which is commonly
+   * used for tests in this class.
+   */
+  private HiveMetaStore.HMSHandler initializeMockHMSHandler()
+  {
     // Mock the HMSHandler and configurations
     Configuration mockConfig = PowerMockito.mock(Configuration.class);
     HiveMetaStore.HMSHandler mockHandler =
@@ -60,27 +249,30 @@ public class CreateTableTest
         .thenReturn("{secretAccessKey}");
     PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
 
-    CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, mockHandler);
+    return mockHandler;
+  }
 
-    CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+  /**
+   * Helper class to initialize a base Table object for tests
+   */
+  private Table initializeMockTable()
+  {
+    Table table = new Table();
 
-    List<String> commands = createExternalTable.generateCommands();
-    assertEquals("generated create stage command does not match " +
-        "expected create stage command",
-          "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-          "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-          "AWS_SECRET_KEY='{secretAccessKey}');",
-        commands.get(0));
+    table.setTableName("t1");
+    table.setPartitionKeys(Arrays.asList(
+        new FieldSchema("partcol", "int", null),
+        new FieldSchema("name", "string", null)));
+    table.setSd(new StorageDescriptor());
+    table.getSd().setCols(new ArrayList<>());
+    table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
+    table.getSd().setLocation("s3n://bucketname/path/to/table");
+    table.getSd().setSerdeInfo(new SerDeInfo());
+    table.getSd().getSerdeInfo().setSerializationLib(
+        "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe");
+    table.getSd().getSerdeInfo().setParameters(new HashMap<>());
+    table.setParameters(new HashMap<>());
 
-    assertEquals("generated create external table command does not match " +
-        "expected create external table command",
-        "CREATE EXTERNAL TABLE t1(partcol INT as " +
-            "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
-            "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-            "partition by (partcol,name)location=@t1 " +
-            "partition_type=user_specified file_format=(TYPE=CSV);",
-        commands.get(1));
+    return table;
   }
 }
