@@ -6,6 +6,7 @@ package com.snowflake.jdbc.client;
 import com.snowflake.conf.SnowflakeJdbcConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.util.CommandGenerator;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
@@ -51,7 +52,7 @@ public class SnowflakeClient
     // Some Hive commands require more than one statement in Snowflake
     // For example, for create table, a stage must be created before the table
     log.info("Generating Snowflake queries");
-    List<String> commandList;
+    List<SensitiveString> commandList;
     try
     {
       commandList = command.generateCommands();
@@ -72,7 +73,7 @@ public class SnowflakeClient
         try (Statement statement = connection.createStatement())
         {
           log.info("Executing command: " + commandStr);
-          ResultSet resultSet = statement.executeQuery(commandStr);
+          ResultSet resultSet = statement.executeQuery(commandStr.toStringWithSensitiveValues());
           StringBuilder sb = new StringBuilder();
           sb.append("Result:\n");
           while (resultSet.next())

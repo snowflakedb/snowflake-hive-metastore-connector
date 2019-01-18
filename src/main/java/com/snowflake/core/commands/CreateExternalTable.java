@@ -5,6 +5,7 @@ package com.snowflake.core.commands;
 
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.StageCredentialUtil;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -34,7 +35,7 @@ public class CreateExternalTable implements Command
    * @return
    * @throws Exception
    */
-  private String generateCreateStageCommand()
+  private SensitiveString generateCreateStageCommand()
   throws Exception
   {
     StringBuilder sb = new StringBuilder();
@@ -49,12 +50,12 @@ public class CreateExternalTable implements Command
     sb.append("url='");
     sb.append(HiveToSnowflakeType.toSnowflakeURL(url) + "'\n");
 
-    String credentials = StageCredentialUtil
+    SensitiveString credentials = StageCredentialUtil
         .generateCredentialsString(url, hiveConf);
     sb.append(credentials);
     sb.append(";");
 
-    return sb.toString();
+    return new SensitiveString(sb.toString(), credentials.getSensitiveValues());
   }
 
   /**
@@ -78,7 +79,8 @@ public class CreateExternalTable implements Command
     sb.append(" as (VALUE:");
     if (snowflakeFileFormatType.equals("CSV"))
     {
-      // For CSV, Snowflake populates VALUE with c1, c2, ... for each column
+      // For CSV, Snowflake populates VALUE with the keys c1, c2, etc. for each
+      // column
       sb.append("c");
       sb.append((columnIndex+1));
     }
@@ -199,18 +201,18 @@ public class CreateExternalTable implements Command
    * @return
    * @throws Exception
    */
-  public List<String> generateCommands()
+  public List<SensitiveString> generateCommands()
       throws Exception
   {
-    List<String> queryList = new ArrayList<>();
+    List<SensitiveString> queryList = new ArrayList<>();
 
-    String createStageQuery = generateCreateStageCommand();
+    SensitiveString createStageQuery = generateCreateStageCommand();
 
     queryList.add(createStageQuery);
 
     String createTableQuery = generateCreateTableCommand();
 
-    queryList.add(createTableQuery);
+    queryList.add(new SensitiveString(createTableQuery));
 
     return queryList;
   }

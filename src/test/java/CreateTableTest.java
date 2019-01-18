@@ -1,4 +1,5 @@
 import com.snowflake.core.commands.CreateExternalTable;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -46,13 +47,13 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-                     "AWS_SECRET_KEY='{secretAccessKey}');",
-                 commands.get(0));
+                     "AWS_SECRET_KEY='{awsSecretKey}');",
+                 commands.get(0).toString());
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -61,7 +62,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
 
@@ -88,13 +89,13 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-                     "AWS_SECRET_KEY='{secretAccessKey}');",
-                 commands.get(0));
+                     "AWS_SECRET_KEY='{awsSecretKey}');",
+                 commands.get(0).toString());
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -103,7 +104,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@t1 partition_type=user_specified " +
                      "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'');",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
   /**
@@ -117,7 +118,7 @@ public class CreateTableTest
   {
     Table table = initializeMockTable();
 
-    table.getSd().setInputFormat("parquet.hive.DeprecatedParquetInputFormat");
+    table.getSd().setInputFormat("org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat");
     table.getSd().getSerdeInfo().setSerializationLib(
         "parquet.hive.serde.ParquetHiveSerDe");
     Map<String, String> serDeParams = new HashMap<>();
@@ -130,13 +131,13 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-                     "AWS_SECRET_KEY='{secretAccessKey}');",
-                 commands.get(0));
+                     "AWS_SECRET_KEY='{awsSecretKey}');",
+                 commands.get(0).toString());
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -145,7 +146,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
   /**
@@ -169,13 +170,13 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-                     "AWS_SECRET_KEY='{secretAccessKey}');",
-                 commands.get(0));
+                     "AWS_SECRET_KEY='{awsSecretKey}');",
+                 commands.get(0).toString());
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -186,7 +187,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
   /**
@@ -213,13 +214,13 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
-                     "AWS_SECRET_KEY='{secretAccessKey}');",
-                 commands.get(0));
+                     "AWS_SECRET_KEY='{awsSecretKey}');",
+                 commands.get(0).toString());
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -230,7 +231,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
   /**
@@ -246,7 +247,7 @@ public class CreateTableTest
     PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
         .thenReturn("{accessKeyId}");
     PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
-        .thenReturn("{secretAccessKey}");
+        .thenReturn("{awsSecretKey}");
     PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
 
     return mockHandler;

@@ -3,11 +3,13 @@
  */
 package com.snowflake.core.commands;
 
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A class for the DropExternalTable command
@@ -57,7 +59,7 @@ public class DropExternalTable implements Command
   /**
    * Generates the necessary commands on a hive drop table event
    */
-  public List<String> generateCommands()
+  public List<SensitiveString> generateCommands()
     throws Exception
   {
     List<String> queryList = new ArrayList<>();
@@ -69,7 +71,8 @@ public class DropExternalTable implements Command
     String dropStageQuery = generateDropStageCommand();
     queryList.add(dropStageQuery);
 
-    return queryList;
+    return queryList
+        .stream().map(SensitiveString::new).collect(Collectors.toList());
   }
 
   private Table hiveTable;

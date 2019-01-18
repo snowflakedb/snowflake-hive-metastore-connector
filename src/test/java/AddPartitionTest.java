@@ -1,4 +1,5 @@
 import com.snowflake.core.commands.AddPartition;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -51,12 +52,12 @@ public class AddPartitionTest
 
     AddPartition addPartition = new AddPartition(addPartitionEvent);
 
-    List<String> commands = addPartition.generateCommands();
+    List<SensitiveString> commands = addPartition.generateCommands();
     assertEquals("generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
                      "name='testName') LOCATION 'sub/path';",
-                 commands.get(0));
+                 commands.get(0).toString());
   }
 
   /**
@@ -88,17 +89,17 @@ public class AddPartitionTest
 
     AddPartition addPartition = new AddPartition(addPartitionEvent);
 
-    List<String> commands = addPartition.generateCommands();
+    List<SensitiveString> commands = addPartition.generateCommands();
     assertEquals("first generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
                      "name='testName') LOCATION 'sub/path';",
-                 commands.get(0));
+                 commands.get(0).toString());
     assertEquals("second generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='2'," +
                      "name='testName2') LOCATION 'sub/path2';",
-                 commands.get(1));
+                 commands.get(1).toString());
   }
 
   private static Table createMockTable()

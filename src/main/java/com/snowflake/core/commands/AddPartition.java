@@ -3,6 +3,7 @@
  */
 package com.snowflake.core.commands;
 
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * A class for the AddPartition command
@@ -87,7 +89,7 @@ public class AddPartition implements Command
    * @return
    * @throws Exception
    */
-  public List<String> generateCommands()
+  public List<SensitiveString> generateCommands()
       throws Exception
   {
     List<String> queryList = new ArrayList<>();
@@ -99,7 +101,8 @@ public class AddPartition implements Command
       queryList.addAll(this.generateAddPartitionCommand(partition));
     }
 
-    return queryList;
+    return queryList
+        .stream().map(SensitiveString::new).collect(Collectors.toList());
   }
 
   private Table hiveTable;

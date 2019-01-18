@@ -3,7 +3,11 @@
  */
 package com.snowflake.core.util;
 
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A utility function to help with retrieving stage credentials and generating
@@ -49,8 +53,8 @@ public enum StageCredentialUtil
    * @return
    * @throws Exception
    */
-  public static String generateCredentialsString(String url,
-                                                 Configuration config)
+  public static SensitiveString generateCredentialsString(
+      String url, Configuration config)
   throws Exception
   {
     StageCredentialUtil stageType = getStageTypeFromURL(url);
@@ -77,9 +81,11 @@ public enum StageCredentialUtil
         sb.append("credentials=(");
         sb.append("AWS_KEY_ID=");
         sb.append("'" + accessKey + "'\n");
-        sb.append("AWS_SECRET_KEY=");
-        sb.append("'" + secretKey + "')");
-        return sb.toString();
+        sb.append("AWS_SECRET_KEY='{awsSecretKey}')");
+
+        Map<String, String> secrets = new HashMap<>();
+        secrets.put("awsSecretKey", secretKey);
+        return new SensitiveString(sb.toString(), secrets);
       }
       default:
         throw new Exception("Cannot get credentials for the stage type: " +
