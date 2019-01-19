@@ -36,6 +36,7 @@ For more information on the Snowflake JDBC driver, see: https://docs.snowflake.n
 4. Update the Hive metastore configuration to point to the listener. To do this, simply add the following section to hive-site.xml (typically found in hive/conf):
 
 .. code-block:: bash
+
     <configuration>
       ...
       <property>
