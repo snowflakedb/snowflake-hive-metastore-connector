@@ -56,7 +56,7 @@ public class StringUtil
   {
     /**
      * Constructor for a sensitive string with no sensitive information
-     * @param string
+     * @param string The string
      * @see com.snowflake.core.util.StringUtil#format
      */
     public SensitiveString(String string)
@@ -98,7 +98,7 @@ public class StringUtil
      * @return A map representing sensitive values and what they are referred
      *         as in the formatted string.
      */
-    public Map<String, String> getSensitiveValues()
+    public Map<String, String> getSecrets()
     {
       return this.getValue();
     }

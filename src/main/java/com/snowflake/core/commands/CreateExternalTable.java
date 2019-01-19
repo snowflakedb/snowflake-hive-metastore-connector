@@ -22,7 +22,7 @@ public class CreateExternalTable implements Command
 {
   /**
    * Creates a CreateExternalTable command
-   * @param createTableEvent
+   * @param createTableEvent Event to generate a command from
    */
   public CreateExternalTable(CreateTableEvent createTableEvent)
   {
@@ -32,8 +32,8 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the create stage command
-   * @return
-   * @throws Exception
+   * @return The generated commands
+   * @throws Exception Thrown when the input is invalid
    */
   private SensitiveString generateCreateStageCommand()
   throws Exception
@@ -55,18 +55,18 @@ public class CreateExternalTable implements Command
     sb.append(credentials);
     sb.append(";");
 
-    return new SensitiveString(sb.toString(), credentials.getSensitiveValues());
+    return new SensitiveString(sb.toString(), credentials.getSecrets());
   }
 
   /**
    * Generate the string for a column to be used in the query
-   * @param columnSchema
-   * @param columnIndex
-   * @param snowflakeFileFormatType
-   * @return
-   * @throws Exception
+   * @param columnSchema Details about the column
+   * @param columnPosition Position of this column (used for CSV columns only)
+   * @param snowflakeFileFormatType Snowflake's file format type
+   * @return Snippet of a command that represents a column
+   * @throws Exception Thrown when the input is invalid
    */
-  private String generateColumnStr(FieldSchema columnSchema, int columnIndex,
+  private String generateColumnStr(FieldSchema columnSchema, int columnPosition,
                                    String snowflakeFileFormatType)
       throws Exception
   {
@@ -82,7 +82,7 @@ public class CreateExternalTable implements Command
       // For CSV, Snowflake populates VALUE with the keys c1, c2, etc. for each
       // column
       sb.append("c");
-      sb.append((columnIndex+1));
+      sb.append((columnPosition+1));
     }
     else
     {
@@ -98,9 +98,9 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the string for a partition column to be used in the query
-   * @param columnSchema
-   * @return
-   * @throws Exception
+   * @param columnSchema Details about the column
+   * @return Snippet of a command that represents a partition column
+   * @throws Exception Thrown when the input is invalid
    */
   private String generatePartitionColumnStr(FieldSchema columnSchema)
   throws Exception
@@ -198,8 +198,8 @@ public class CreateExternalTable implements Command
    * Generates the commands for create external table
    * Generates a create stage command followed by a create
    * external table command
-   * @return
-   * @throws Exception
+   * @return The generated commands
+   * @throws Exception Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
       throws Exception

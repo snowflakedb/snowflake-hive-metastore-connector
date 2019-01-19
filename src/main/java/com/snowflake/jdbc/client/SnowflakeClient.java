@@ -109,12 +109,12 @@ public class SnowflakeClient
   }
 
   /**
-   * Get the connection to the snowflake account.
-   * First finds a snowflake driver and connects to Snowflake using the
+   * Get the connection to the Snowflake account.
+   * First finds a Snowflake driver and connects to Snowflake using the
    * given properties
-   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
-   * @return
-   * @throws SQLException
+   * @param snowflakeJdbcConf - the configuration for Snowflake JDBC
+   * @return The JDBC connection
+   * @throws SQLException Exception thrown when initializing the connection
    */
   private static Connection getConnection(SnowflakeJdbcConf snowflakeJdbcConf)
       throws SQLException

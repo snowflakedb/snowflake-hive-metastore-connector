@@ -34,7 +34,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
   /**
    * The listener for the create table command
-   * @param tableEvent
+   * @param tableEvent An event that was listened for
    */
   @Override
   public void onCreateTable(CreateTableEvent tableEvent)
@@ -49,7 +49,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
   /**
    * The listener for the drop table command
-   * @param tableEvent
+   * @param tableEvent An event that was listened for
    */
   @Override
   public void onDropTable(DropTableEvent tableEvent)
@@ -64,7 +64,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
   /**
    * The listener for the add partition command
-   * @param partitionEvent
+   * @param partitionEvent An event that was listened for
    */
   @Override
   public void onAddPartition(AddPartitionEvent partitionEvent)

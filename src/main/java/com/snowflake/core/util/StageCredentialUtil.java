@@ -19,10 +19,10 @@ public enum StageCredentialUtil
   AWS;
 
   /**
-   * Get a stage type from the hive table location
-   * @param url
-   * @return
-   * @throws Exception
+   * Get a stage type from the Hive table location
+   * @param url The URL
+   * @return Snowflake's corresponding stage type
+   * @throws Exception Thrown when the input is invalid
    */
   private static StageCredentialUtil getStageTypeFromURL(String url)
   throws Exception
@@ -37,8 +37,8 @@ public enum StageCredentialUtil
   /**
    * Get the prefix of the location from the hiveUrl
    * Used for retrieving keys from the config.
-   * @param hiveUrl
-   * @return
+   * @param hiveUrl The URL
+   * @return The prefix/protocol from the URL
    */
   private static String getLocationPrefix(String hiveUrl)
   {
@@ -48,10 +48,10 @@ public enum StageCredentialUtil
 
   /**
    * Get the credentials for the given stage in the url.
-   * @param url
-   * @param config
-   * @return
-   * @throws Exception
+   * @param url The URL
+   * @param config The Hadoop configuration
+   * @return Snippet that represents credentials for the given location
+   * @throws Exception Thrown when the input is invalid
    */
   public static SensitiveString generateCredentialsString(
       String url, Configuration config)

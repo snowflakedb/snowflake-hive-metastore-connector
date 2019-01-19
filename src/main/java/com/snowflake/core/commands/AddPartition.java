@@ -24,7 +24,7 @@ public class AddPartition implements Command
 {
   /**
    * Creates a AddPartition command
-   * @param addPartitionEvent
+   * @param addPartitionEvent Event to generate a command from
    */
   public AddPartition(AddPartitionEvent addPartitionEvent)
   {
@@ -34,8 +34,12 @@ public class AddPartition implements Command
 
   /**
    * Generates the commands for add partition.
-   * @return
-   * @throws Exception
+   * @return Partition object to generate a command from
+   * @throws Exception Thrown when the input is invalid:
+   *                    - when the number of partition keys don't match the
+   *                      number of partition values
+   *                    - when the partition column is not within the stage
+   *                      location
    */
   private List<String> generateAddPartitionCommand(Partition partition)
       throws Exception
@@ -86,8 +90,8 @@ public class AddPartition implements Command
 
   /**
    * Generates the commands for add partition.
-   * @return
-   * @throws Exception
+   * @return The generated commands
+   * @throws Exception Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
       throws Exception

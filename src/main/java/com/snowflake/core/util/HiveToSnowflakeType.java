@@ -14,12 +14,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * A util to convert hive types such as the hive datatype to snowflake types.
+ * A util to convert Hive types such as the hive datatype to Snowflake types.
  */
 public class HiveToSnowflakeType
 {
   /**
-   * The mapping from a hive datatype to a snowflake datatype
+   * The mapping from a Hive datatype to a Snowflake datatype
    */
   public static ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
       new ImmutableMap.Builder<String, String>()
@@ -59,13 +59,13 @@ public class HiveToSnowflakeType
       "(" + String.join("|", snowflakeFileFormatTypes) + ")");
 
   /**
-   * converts a hive column data type to a snowflake datatype
-   * @param hiveType
-   * @return
-   * @throws Exception
+   * converts a Hive column data type to a Snowflake datatype
+   * @param hiveType The data type of the column according to Hive
+   * @return The corresponding Snowflake data type
+   * @throws Exception Thrown when the input is invalid
    */
   public static String toSnowflakeColumnDataType(String hiveType)
-  throws Exception
+      throws Exception
   {
     if (hiveToSnowflakeDataTypeMap.containsKey(hiveType.toUpperCase()))
     {
@@ -76,10 +76,10 @@ public class HiveToSnowflakeType
   }
 
   /**
-   * converts a hive url to a snowflake url
-   * @param hiveUrl
-   * @return
-   * @throws Exception
+   * converts a Hive URL to a Snowflake URL
+   * @param hiveUrl The Hive URL
+   * @return The URL as understood by Snowflake
+   * @throws Exception Thrown when the input is invalid
    */
   public static String toSnowflakeURL(String hiveUrl)
       throws Exception
@@ -97,17 +97,17 @@ public class HiveToSnowflakeType
   }
 
   /**
-   * converts a hive file format to a snowflake file format
-   * @param sfFileFmtType
-   * @param serDeInfo
-   * @param tableProps
-   * @return
-   * @throws Exception
+   * converts a Hive file format to a Snowflake file format
+   * @param sfFileFmtType Snowflake's file format type
+   * @param serDeInfo Details about the SerDe
+   * @param tableProps Table properties the table was created with
+   * @return Snippet representing a Snowflake file format
+   * @throws Exception Thrown when the input is invalid
    */
   public static String toSnowflakeFileFormat(String sfFileFmtType,
                                              SerDeInfo serDeInfo,
                                              Map<String, String> tableProps)
-  throws Exception
+      throws Exception
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
     Map<String, String> serDeParams = serDeInfo.getParameters();
@@ -172,14 +172,14 @@ public class HiveToSnowflakeType
   /**
    * Determines the most appropriate Snowflake file format type for a given Hive
    * file format and SerDe.
-   * @param serDeLib
-   * @param hiveFileFormat
-   * @return
-   * @throws Exception
+   * @param serDeLib The SerDe class that the table was created with
+   * @param hiveFileFormat The file format according to Hive
+   * @return The corresponding Snowflake file format type
+   * @throws Exception Thrown when the input is invalid
    */
   public static String toSnowflakeFileFormatType(String serDeLib,
                                                  String hiveFileFormat)
-  throws Exception
+      throws Exception
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
     // Snowflake file format is appropriate. For example:

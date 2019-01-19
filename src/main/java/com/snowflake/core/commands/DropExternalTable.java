@@ -24,7 +24,7 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the command for drop external table
-   * @return
+   * @return The generated command
    */
   private String generateDropTableCommand()
   {
@@ -40,11 +40,11 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the command for drop stage
-   * @return
-   * @throws Exception
+   * @return The generated command
+   * @throws Exception Thrown when the input is invalid
    */
   private String generateDropStageCommand()
-  throws Exception
+    throws Exception
   {
     StringBuilder sb = new StringBuilder();
 
