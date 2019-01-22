@@ -3,6 +3,7 @@
  */
 package com.snowflake.core.commands;
 
+import com.google.common.base.Preconditions;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -28,33 +29,30 @@ public class AddPartition implements Command
    */
   public AddPartition(AddPartitionEvent addPartitionEvent)
   {
-    this.hiveTable = addPartitionEvent.getTable();
+    Preconditions.checkNotNull(addPartitionEvent);
+    this.hiveTable = Preconditions.checkNotNull(addPartitionEvent.getTable());
     this.getPartititonsIterator = addPartitionEvent::getPartitionIterator;
   }
 
   /**
    * Generates the commands for add partition.
-   * @return Partition object to generate a command from
-   * @throws Exception Thrown when the input is invalid:
-   *                    - when the number of partition keys don't match the
-   *                      number of partition values
-   *                    - when the partition column is not within the stage
-   *                      location
+   * @param partition Partition object to generate a command from
+   * @return The equivalent Snowflake command generated
+   * @throws IllegalArgumentException Thrown when the input is invalid:
+   *  - when the number of partition keys don't match the  number of
+   *    partition values
+   *  - when the partition column is not within the stage location
    */
-  private List<String> generateAddPartitionCommand(Partition partition)
-      throws Exception
+  private String generateAddPartitionCommand(Partition partition)
+      throws IllegalArgumentException
   {
-    List<String> queryList = new ArrayList<>();
-
     List<FieldSchema> partitionKeys = this.hiveTable.getPartitionKeys();
     List<String> partitionValues = partition.getValues();
-    if (partitionKeys.size() != partitionValues.size())
-    {
-      throw new Exception(String.format(
-          "Invalid number of partition values. Expected: %1$d, actual: %2$d.",
-          partitionKeys.size(),
-          partitionValues.size()));
-    }
+    Preconditions.checkArgument(
+        partitionKeys.size() == partitionValues.size(),
+        "Invalid number of partition values. Expected: %1$d, actual: %2$d.",
+        partitionKeys.size(),
+        partitionValues.size());
 
     List<String> partitionDefinitions = new ArrayList<>();
     for (int i = 0; i < partitionKeys.size(); i++)
@@ -65,32 +63,29 @@ public class AddPartition implements Command
     }
 
     // For partitions, Hive requires absolute paths, while Snowflake requires
-    // absolute paths.
+    // relative paths.
     URI relativeLocation =
         URI.create(hiveTable.getSd().getLocation())
         .relativize(URI.create(partition.getSd().getLocation()));
-    if (relativeLocation.isAbsolute())
-    {
-      // Relativizing failed, since relativized URI is still absolute.
-      throw new Exception("The stage location must contain the partition " +
-                          "location.");
-    }
 
-    String addPartitionQuery = String.format(
+    // If the relativized URI is still absolute, then relativizing failed
+    // because the partition location was invalid.
+    Preconditions.checkArgument(
+        !relativeLocation.isAbsolute(),
+        "The partition location must be a subpath of the stage location.");
+
+    return String.format(
         "ALTER EXTERNAL TABLE %1$s " +
         "ADD PARTITION(%2$s) " +
         "LOCATION '%3$s';",
         this.hiveTable.getTableName(),
         String.join(",", partitionDefinitions),
         relativeLocation);
-    queryList.add(addPartitionQuery);
-
-    return queryList;
   }
 
   /**
    * Generates the commands for add partition.
-   * @return The generated commands
+   * @return The Snowflake commands generated
    * @throws Exception Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
@@ -102,7 +97,7 @@ public class AddPartition implements Command
     while (partitionIterator.hasNext())
     {
       Partition partition = partitionIterator.next();
-      queryList.addAll(this.generateAddPartitionCommand(partition));
+      queryList.add(this.generateAddPartitionCommand(partition));
     }
 
     return queryList

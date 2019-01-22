@@ -14,7 +14,8 @@ import java.util.List;
 public interface Command
 {
   /**
-   * Generates the query in a string form to be sent to GS
+   * Generates the query in a string form to be sent to Snowflake
+   * @return The Snowflake commands generated
    */
   List<SensitiveString> generateCommands() throws Exception;
 }

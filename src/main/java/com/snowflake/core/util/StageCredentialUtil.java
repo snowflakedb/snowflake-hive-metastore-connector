@@ -22,16 +22,18 @@ public enum StageCredentialUtil
    * Get a stage type from the Hive table location
    * @param url The URL
    * @return Snowflake's corresponding stage type
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the URL or stage type is
+   *                                  invalid or unsupported.
    */
   private static StageCredentialUtil getStageTypeFromURL(String url)
-  throws Exception
+  throws IllegalArgumentException
   {
     if (url.startsWith("s3"))
     {
       return StageCredentialUtil.AWS;
     }
-    throw new Exception("The stage type does not exist");
+    throw new IllegalArgumentException(
+        "The stage type does not exist or is unsupported.");
   }
 
   /**
@@ -51,11 +53,11 @@ public enum StageCredentialUtil
    * @param url The URL
    * @param config The Hadoop configuration
    * @return Snippet that represents credentials for the given location
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the input is invalid
    */
   public static SensitiveString generateCredentialsString(
       String url, Configuration config)
-  throws Exception
+  throws IllegalArgumentException
   {
     StageCredentialUtil stageType = getStageTypeFromURL(url);
 
@@ -63,7 +65,9 @@ public enum StageCredentialUtil
     {
       case AWS:
       {
-        // get the access keys
+        // Get the AWS access keys
+        // Note: with s3a, "fs.s3a.access.key" is also a valid configuration,
+        //       so check both "fs.X.access.key" and "fs.X.awsAccessKeyId"
         String prefix = getLocationPrefix(url);
         String accessKey = config.get("fs." + prefix + ".awsAccessKeyId");
         if (accessKey == null)
@@ -88,8 +92,8 @@ public enum StageCredentialUtil
         return new SensitiveString(sb.toString(), secrets);
       }
       default:
-        throw new Exception("Cannot get credentials for the stage type: " +
-            stageType.name());
+        throw new IllegalArgumentException(
+            "Cannot get credentials for the stage type: " + stageType.name());
     }
   }
 

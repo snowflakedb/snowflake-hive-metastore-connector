@@ -24,7 +24,7 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the command for drop external table
-   * @return The generated command
+   * @return The Snowflake command generated
    */
   private String generateDropTableCommand()
   {
@@ -40,7 +40,7 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the command for drop stage
-   * @return The generated command
+   * @return The Snowflake command generated
    * @throws Exception Thrown when the input is invalid
    */
   private String generateDropStageCommand()
@@ -58,6 +58,7 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the necessary commands on a hive drop table event
+   * @return The Snowflake commands generated
    */
   public List<SensitiveString> generateCommands()
     throws Exception

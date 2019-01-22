@@ -32,7 +32,7 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the create stage command
-   * @return The generated commands
+   * @return the Snowflake command generated
    * @throws Exception Thrown when the input is invalid
    */
   private SensitiveString generateCreateStageCommand()
@@ -64,11 +64,9 @@ public class CreateExternalTable implements Command
    * @param columnPosition Position of this column (used for CSV columns only)
    * @param snowflakeFileFormatType Snowflake's file format type
    * @return Snippet of a command that represents a column
-   * @throws Exception Thrown when the input is invalid
    */
   private String generateColumnStr(FieldSchema columnSchema, int columnPosition,
                                    String snowflakeFileFormatType)
-      throws Exception
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -100,10 +98,8 @@ public class CreateExternalTable implements Command
    * Generate the string for a partition column to be used in the query
    * @param columnSchema Details about the column
    * @return Snippet of a command that represents a partition column
-   * @throws Exception Thrown when the input is invalid
    */
   private String generatePartitionColumnStr(FieldSchema columnSchema)
-  throws Exception
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -121,6 +117,7 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the create table command
+   * @return The equivalent Snowflake command generated
    */
   private String generateCreateTableCommand()
   throws Exception
@@ -198,7 +195,7 @@ public class CreateExternalTable implements Command
    * Generates the commands for create external table
    * Generates a create stage command followed by a create
    * external table command
-   * @return The generated commands
+   * @return The Snowflake commands generated
    * @throws Exception Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()

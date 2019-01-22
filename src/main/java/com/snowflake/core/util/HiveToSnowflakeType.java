@@ -62,27 +62,29 @@ public class HiveToSnowflakeType
    * converts a Hive column data type to a Snowflake datatype
    * @param hiveType The data type of the column according to Hive
    * @return The corresponding Snowflake data type
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the data type is invalid or
+   *                                  unsupported.
    */
   public static String toSnowflakeColumnDataType(String hiveType)
-      throws Exception
+      throws IllegalArgumentException
   {
     if (hiveToSnowflakeDataTypeMap.containsKey(hiveType.toUpperCase()))
     {
       return hiveToSnowflakeDataTypeMap.get(hiveType.toUpperCase());
     }
-    throw new Exception("Snowflake does not support the corresponding " +
-                        "Hive data type: " + hiveType);
+    throw new IllegalArgumentException(
+        "Snowflake does not support the corresponding Hive data type: " +
+            hiveType);
   }
 
   /**
    * converts a Hive URL to a Snowflake URL
    * @param hiveUrl The Hive URL
    * @return The URL as understood by Snowflake
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the input is invalid
    */
   public static String toSnowflakeURL(String hiveUrl)
-      throws Exception
+      throws IllegalArgumentException
   {
     String snowflakeUrl;
     // for now, only handle stages on aws
@@ -93,7 +95,8 @@ public class HiveToSnowflakeType
       snowflakeUrl = hiveUrl.substring(0, 2) + hiveUrl.substring(colonIndex);
       return snowflakeUrl;
     }
-    throw new Exception("Snowflake does not support the external location");
+    throw new IllegalArgumentException(
+        "Snowflake does not support the external location");
   }
 
   /**
@@ -102,12 +105,12 @@ public class HiveToSnowflakeType
    * @param serDeInfo Details about the SerDe
    * @param tableProps Table properties the table was created with
    * @return Snippet representing a Snowflake file format
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the input is invalid
    */
   public static String toSnowflakeFileFormat(String sfFileFmtType,
                                              SerDeInfo serDeInfo,
                                              Map<String, String> tableProps)
-      throws Exception
+      throws IllegalArgumentException
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
     Map<String, String> serDeParams = serDeInfo.getParameters();
@@ -154,8 +157,9 @@ public class HiveToSnowflakeType
               snowflakeFileFormatOptions.put("SNAPPY_COMPRESSION", "FALSE");
               break;
             default:
-              throw new Exception("Snowflake does not support the following" +
-                                      "compression format for Parquet: " + compression);
+              throw new IllegalArgumentException(
+                  "Snowflake does not support the following compression " +
+                      "format for Parquet: " + compression);
           }
         }
     }
@@ -175,11 +179,12 @@ public class HiveToSnowflakeType
    * @param serDeLib The SerDe class that the table was created with
    * @param hiveFileFormat The file format according to Hive
    * @return The corresponding Snowflake file format type
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the SerDe is invalid or
+   *                                  unsupported.
    */
   public static String toSnowflakeFileFormatType(String serDeLib,
                                                  String hiveFileFormat)
-      throws Exception
+      throws IllegalArgumentException
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
     // Snowflake file format is appropriate. For example:
@@ -198,7 +203,7 @@ public class HiveToSnowflakeType
       return "CSV";
     }
 
-    throw new Exception("Snowflake does not support the corresponding " +
-                        "SerDe: " + serDeLib);
+    throw new IllegalArgumentException(
+        "Snowflake does not support the corresponding SerDe: " + serDeLib);
   }
 }
