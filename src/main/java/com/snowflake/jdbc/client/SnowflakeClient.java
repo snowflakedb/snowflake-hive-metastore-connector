@@ -65,15 +65,15 @@ public class SnowflakeClient
 
     // Get connection
     log.info("Getting connection to the Snowflake");
-    // TODO: retry in the case of failure
-    try (Connection connection = getConnection(snowflakeJdbcConf))
+    try (Connection connection = retry(() -> getConnection(snowflakeJdbcConf)))
     {
       commandList.forEach(commandStr ->
       {
-        try (Statement statement = connection.createStatement())
+        try (Statement statement = retry(connection::createStatement))
         {
           log.info("Executing command: " + commandStr);
-          ResultSet resultSet = statement.executeQuery(commandStr.toStringWithSensitiveValues());
+          ResultSet resultSet = retry(() -> statement.executeQuery(
+              commandStr.toStringWithSensitiveValues()));
           StringBuilder sb = new StringBuilder();
           sb.append("Result:\n");
           while (resultSet.next())
@@ -111,7 +111,7 @@ public class SnowflakeClient
   /**
    * Get the connection to the Snowflake account.
    * First finds a Snowflake driver and connects to Snowflake using the
-   * given properties
+   * given properties.
    * @param snowflakeJdbcConf - the configuration for Snowflake JDBC
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
@@ -149,5 +149,69 @@ public class SnowflakeClient
         SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
 
     return DriverManager.getConnection(connectStr, properties);
+  }
+
+  /**
+   * Helper interface that represents a Supplier that can throw an exception.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   */
+  @FunctionalInterface
+  public interface ThrowableSupplier<T, E extends Throwable>
+  {
+    T get() throws E;
+  }
+
+  /**
+   * Helper method for simple retries.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   * @param method The method to be executed and retried on.
+   * @param maxRetryCount Maximum number of attempts.
+   * @param millisecondsBetweenAttempts Time between retries.
+   */
+  private static <T, E extends Throwable> T retry(
+      ThrowableSupplier<T,E> method,
+      int maxRetryCount,
+      int millisecondsBetweenAttempts)
+  throws E
+  {
+    for (int i = 0; i < maxRetryCount - 1; i++)
+    {
+      try
+      {
+        // Attempt to call the method
+        return method.get();
+      }
+      catch (Exception e)
+      {
+        // Wait between retries
+        try
+        {
+          Thread.sleep(millisecondsBetweenAttempts);
+        }
+        catch (InterruptedException interruptedEx)
+        {
+          log.error("Thread interrupted.");
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+
+    // Call one last time, the exception will by handled by the caller
+    return method.get();
+  }
+
+  /**
+   * Helper method for simple retries. Overload for default arguments.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   * @param method The method to be executed and retried on.
+   */
+  private static <T, E extends Throwable> T retry(
+      ThrowableSupplier<T, E> method)
+  throws E
+  {
+    return retry(method, 3, 1000);
   }
 }
