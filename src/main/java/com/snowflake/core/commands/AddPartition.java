@@ -64,9 +64,9 @@ public class AddPartition implements Command
 
     // For partitions, Hive requires absolute paths, while Snowflake requires
     // relative paths.
-    URI relativeLocation =
-        URI.create(hiveTable.getSd().getLocation())
-        .relativize(URI.create(partition.getSd().getLocation()));
+    URI tableLocation = URI.create(hiveTable.getSd().getLocation());
+    URI partitionLocation = URI.create(partition.getSd().getLocation());
+    URI relativeLocation = tableLocation.relativize(partitionLocation);
 
     // If the relativized URI is still absolute, then relativizing failed
     // because the partition location was invalid.
@@ -77,10 +77,12 @@ public class AddPartition implements Command
     return String.format(
         "ALTER EXTERNAL TABLE %1$s " +
         "ADD PARTITION(%2$s) " +
-        "LOCATION '%3$s';",
+        "LOCATION '%3$s' " +
+        "/* TABLE LOCATION = '%4$s' */;",
         this.hiveTable.getTableName(),
         String.join(",", partitionDefinitions),
-        relativeLocation);
+        relativeLocation,
+        tableLocation);
   }
 
   /**

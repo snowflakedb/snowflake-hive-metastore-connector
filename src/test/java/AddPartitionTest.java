@@ -56,7 +56,8 @@ public class AddPartitionTest
     assertEquals("generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
-                     "name='testName') LOCATION 'sub/path';",
+                     "name='testName') LOCATION 'sub/path' /* TABLE LOCATION " +
+                     "= 's3n://bucketname/path/to/table' */;",
                  commands.get(0).toString());
   }
 
@@ -93,12 +94,14 @@ public class AddPartitionTest
     assertEquals("first generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
-                     "name='testName') LOCATION 'sub/path';",
+                     "name='testName') LOCATION 'sub/path' /* TABLE LOCATION " +
+                     "= 's3n://bucketname/path/to/table' */;",
                  commands.get(0).toString());
     assertEquals("second generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='2'," +
-                     "name='testName2') LOCATION 'sub/path2';",
+                     "name='testName2') LOCATION 'sub/path2' /* TABLE " +
+                     "LOCATION = 's3n://bucketname/path/to/table' */;",
                  commands.get(1).toString());
   }
 
