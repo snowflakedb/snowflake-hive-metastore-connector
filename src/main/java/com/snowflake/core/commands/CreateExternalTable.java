@@ -4,6 +4,7 @@
 package com.snowflake.core.commands;
 
 import com.snowflake.core.util.HiveToSnowflakeType;
+import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
@@ -135,14 +136,15 @@ public class CreateExternalTable implements Command
     List<FieldSchema> partCols = hiveTable.getPartitionKeys();
 
     // determine the file format type for Snowflake
-    String sfFileFmtType = HiveToSnowflakeType.toSnowflakeFileFormatType(
-        hiveTable.getSd().getSerdeInfo().getSerializationLib(),
-        hiveTable.getSd().getInputFormat());
+    SnowflakeFileFormatTypes sfFileFmtType =
+        HiveToSnowflakeType.toSnowflakeFileFormatType(
+          hiveTable.getSd().getSerdeInfo().getSerializationLib(),
+          hiveTable.getSd().getInputFormat());
 
     // With Snowflake, partition columns are defined with normal columns
     for (int i = 0; i < cols.size(); i++)
     {
-      sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType));
+      sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType.toString()));
       if (!partCols.isEmpty() || i != cols.size() - 1)
       {
         sb.append(",");

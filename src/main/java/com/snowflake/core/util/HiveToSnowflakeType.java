@@ -3,10 +3,10 @@
  */
 package com.snowflake.core.util;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -40,23 +40,27 @@ public class HiveToSnowflakeType
       .build();
 
   /**
-   * List of file format types suppported by Snowflake
+   * The file format types suppported by Snowflake
    */
-  public static ImmutableList<String> snowflakeFileFormatTypes =
-      new ImmutableList.Builder<String>()
-      .add("CSV")
-      .add("JSON")
-      .add("AVRO")
-      .add("ORC")
-      .add("PARQUET")
-      .add("XML")
-      .build();
+  public enum SnowflakeFileFormatTypes
+  {
+    CSV,
+    JSON,
+    AVRO,
+    ORC,
+    PARQUET,
+    XML
+  }
 
   /**
    * Regex pattern to match a set of strings, e.g. (CSV|JSON|PARQUET)
    */
   private static Pattern sfFileFmtTypeRegex = Pattern.compile(
-      "(" + String.join("|", snowflakeFileFormatTypes) + ")");
+      "(" + String.join(
+          "|",
+          Arrays.stream(SnowflakeFileFormatTypes.values())
+              .map(Enum::name).collect(Collectors.toList())) +
+      ")");
 
   /**
    * converts a Hive column data type to a Snowflake datatype
@@ -107,20 +111,20 @@ public class HiveToSnowflakeType
    * @return Snippet representing a Snowflake file format
    * @throws IllegalArgumentException Thrown when the input is invalid
    */
-  public static String toSnowflakeFileFormat(String sfFileFmtType,
+  public static String toSnowflakeFileFormat(SnowflakeFileFormatTypes sfFileFmtType,
                                              SerDeInfo serDeInfo,
                                              Map<String, String> tableProps)
       throws IllegalArgumentException
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
     Map<String, String> serDeParams = serDeInfo.getParameters();
-    snowflakeFileFormatOptions.put("TYPE", sfFileFmtType);
+    snowflakeFileFormatOptions.put("TYPE", sfFileFmtType.toString());
 
     // Each Snowflake file format type has its own set of options. Attempt to
     // infer these from the SerDe parameters and table properties.
     switch (sfFileFmtType)
     {
-      case "CSV":
+      case CSV:
         String fieldDelimiter = serDeParams.getOrDefault("field.delim", null);
         if (fieldDelimiter != null)
         {
@@ -142,7 +146,7 @@ public class HiveToSnowflakeType
                                          String.format("'%s'", escape));
         }
         break;
-      case "PARQUET":
+      case PARQUET:
         String compression = tableProps.getOrDefault("parquet.compression",null);
         if (compression != null)
         {
@@ -182,8 +186,8 @@ public class HiveToSnowflakeType
    * @throws IllegalArgumentException Thrown when the SerDe is invalid or
    *                                  unsupported.
    */
-  public static String toSnowflakeFileFormatType(String serDeLib,
-                                                 String hiveFileFormat)
+  public static SnowflakeFileFormatTypes toSnowflakeFileFormatType(String serDeLib,
+                                                                   String hiveFileFormat)
       throws IllegalArgumentException
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
@@ -193,14 +197,15 @@ public class HiveToSnowflakeType
     //   org.apache.hadoop.hive.serde2.OpenCSVSerde -> CSV
 
     Matcher matcher = sfFileFmtTypeRegex.matcher(serDeLib.toUpperCase());
-    if (matcher.find()) {
-      return matcher.group(1);
+    if (matcher.find())
+    {
+      return SnowflakeFileFormatTypes.valueOf(matcher.group(1));
     }
 
     // For textfiles types with SerDe's like LazySimpleSerDe, fall back to CSV
     if (hiveFileFormat.equals("org.apache.hadoop.mapred.TextInputFormat"))
     {
-      return "CSV";
+      return SnowflakeFileFormatTypes.CSV;
     }
 
     throw new IllegalArgumentException(
