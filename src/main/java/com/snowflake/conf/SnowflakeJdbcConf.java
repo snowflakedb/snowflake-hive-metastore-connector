@@ -30,7 +30,12 @@ public class SnowflakeJdbcConf extends Configuration
     SNOWFLAKE_JDBC_SSL("snowflake.jdbc.ssl", "ssl",
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
-      "The Snowflake connection string.");
+      "The Snowflake connection string."),
+    SNOWFLAKE_JDBC_RETRY_COUNT("snowflake.jdbc.retry.count", "retryCount",
+      "The number of retries when connecting with Snowflake"),
+    SNOWFLAKE_JDBC_RETRY_TIMEOUT_MILLISECONDS("snowflake.jdbc.retry.timeout",
+      "retryTimeout", "The time between retries when connecting with " +
+      "Snowflake, in milliseconds");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

@@ -1,5 +1,7 @@
+import com.snowflake.conf.SnowflakeJdbcConf;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.core.util.StringUtil.SensitiveString;
+import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -9,22 +11,33 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import javax.sql.RowSet;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.management.*")
-@PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class})
+@PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
+                DriverManager.class, SnowflakeClient.class, Consumer.class})
 
 /**
  * Tests for generating the create table command
@@ -64,7 +77,6 @@ public class CreateTableTest
                      "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(1).toString());
   }
-
 
   /**
    * A test for generating a create table command for a table with file format
@@ -232,6 +244,77 @@ public class CreateTableTest
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
                  commands.get(1).toString());
+  }
+
+  /**
+   * Tests the error handling of the client during a create table event
+   * @throws Exception
+   */
+  @Test
+  public void retryCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    // Mock JDBC connection to be unreliable during query execution
+    RowSet mockRowSet = PowerMockito.mock(RowSet.class);
+    PowerMockito.when(mockRowSet.next()).thenReturn(false);
+
+    Statement mockStatement = PowerMockito.mock(Statement.class);
+    PowerMockito
+        .when(mockStatement.executeQuery(anyString()))
+        .thenThrow(new SQLException())
+        .thenReturn(mockRowSet)
+        .thenThrow(new SQLException())
+        .thenReturn(mockRowSet);
+
+    Connection mockConnection = PowerMockito.mock(Connection.class);
+    PowerMockito
+        .when(mockConnection.createStatement())
+        .thenReturn(mockStatement);
+
+    PowerMockito.mockStatic(DriverManager.class);
+    PowerMockito
+        .when(DriverManager.getConnection(any(String.class),
+                                          any(Properties.class)))
+        .thenReturn(mockConnection);
+
+    // Mock configuration to have a wait time of zero (so tests are quick)
+    SnowflakeJdbcConf mockConfig = PowerMockito.mock(SnowflakeJdbcConf.class);
+    PowerMockito
+        .when(mockConfig.getInt("snowflake.jdbc.retry.timeout", 1000))
+        .thenReturn(0);
+    PowerMockito
+        .when(mockConfig.getInt("snowflake.jdbc.retry.count", 3))
+        .thenReturn(3);
+
+    // Execute an event
+    SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
+                                                      mockConfig);
+
+    // Count the number of times each query was executed. They should have
+    // executed twice each.
+    Mockito
+        .verify(mockStatement, Mockito.times(4))
+        .executeQuery(anyString());
+
+    Mockito
+        .verify(mockStatement, Mockito.times(2))
+        .executeQuery("CREATE STAGE t1 url='s3://bucketname/path/to/table'" +
+                          "\ncredentials=(AWS_KEY_ID='{accessKeyId}'" +
+                          "\nAWS_SECRET_KEY='{awsSecretKey}');");
+    Mockito
+        .verify(mockStatement, Mockito.times(2))
+        .executeQuery(
+            "CREATE EXTERNAL TABLE t1(" +
+                "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                "partition by (partcol,name)" +
+                "location=@t1 " +
+                "partition_type=user_specified " +
+                "file_format=(TYPE=CSV);");
   }
 
   /**

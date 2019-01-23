@@ -65,15 +65,17 @@ public class SnowflakeClient
 
     // Get connection
     log.info("Getting connection to the Snowflake");
-    try (Connection connection = retry(() -> getConnection(snowflakeJdbcConf)))
+    try (Connection connection = retry(
+      () -> getConnection(snowflakeJdbcConf), snowflakeJdbcConf))
     {
       commandList.forEach(commandStr ->
       {
-        try (Statement statement = retry(connection::createStatement))
+        try (Statement statement = retry(
+            connection::createStatement, snowflakeJdbcConf))
         {
           log.info("Executing command: " + commandStr);
           ResultSet resultSet = retry(() -> statement.executeQuery(
-              commandStr.toStringWithSensitiveValues()));
+              commandStr.toStringWithSensitiveValues()), snowflakeJdbcConf);
           StringBuilder sb = new StringBuilder();
           sb.append("Result:\n");
           while (resultSet.next())
@@ -164,19 +166,21 @@ public class SnowflakeClient
 
   /**
    * Helper method for simple retries.
+   * Note: The total number of attempts is 1 + retries.
    * @param <T> The type of object returned by the supplier
    * @param <E> The type of exception thrown by the supplier
    * @param method The method to be executed and retried on.
-   * @param maxRetryCount Maximum number of attempts.
-   * @param millisecondsBetweenAttempts Time between retries.
+   * @param maxRetries The maximum number of retries.
+   * @param timeoutInMilliseconds Time between retries.
    */
   private static <T, E extends Throwable> T retry(
       ThrowableSupplier<T,E> method,
-      int maxRetryCount,
-      int millisecondsBetweenAttempts)
+      int maxRetries,
+      int timeoutInMilliseconds)
   throws E
   {
-    for (int i = 0; i < maxRetryCount - 1; i++)
+    // Attempt to call the method with N-1 retries
+    for (int i = 0; i < maxRetries; i++)
     {
       try
       {
@@ -188,7 +192,7 @@ public class SnowflakeClient
         // Wait between retries
         try
         {
-          Thread.sleep(millisecondsBetweenAttempts);
+          Thread.sleep(timeoutInMilliseconds);
         }
         catch (InterruptedException interruptedEx)
         {
@@ -198,7 +202,7 @@ public class SnowflakeClient
       }
     }
 
-    // Call one last time, the exception will by handled by the caller
+    // Retry one last time, the exception will by handled by the caller
     return method.get();
   }
 
@@ -209,9 +213,14 @@ public class SnowflakeClient
    * @param method The method to be executed and retried on.
    */
   private static <T, E extends Throwable> T retry(
-      ThrowableSupplier<T, E> method)
+      ThrowableSupplier<T, E> method,
+      SnowflakeJdbcConf snowflakeJdbcConf)
   throws E
   {
-    return retry(method, 3, 1000);
+    int maxRetries = snowflakeJdbcConf.getInt(
+        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_RETRY_COUNT.getVarname(), 3);
+    int timeoutInMilliseconds = snowflakeJdbcConf.getInt(
+        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_RETRY_TIMEOUT_MILLISECONDS.getVarname(), 1000);
+    return retry(method, maxRetries, timeoutInMilliseconds);
   }
 }
