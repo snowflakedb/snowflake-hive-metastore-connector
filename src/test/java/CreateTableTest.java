@@ -37,7 +37,7 @@ import static org.mockito.Matchers.anyString;
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.management.*")
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
-                DriverManager.class, SnowflakeClient.class, Consumer.class})
+                DriverManager.class, Consumer.class, SnowflakeClient.class})
 
 /**
  * Tests for generating the create table command

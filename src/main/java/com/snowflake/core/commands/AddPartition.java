@@ -37,7 +37,10 @@ public class AddPartition implements Command
   /**
    * Generates the commands for add partition.
    * @param partition Partition object to generate a command from
-   * @return The equivalent Snowflake command generated
+   * @return The equivalent Snowflake command generated, for example:
+   *         ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='partcolname')
+   *         LOCATION 'sub/path'
+   *         /* TABLE LOCATION = 's3n://bucketname/path/to/table' * /;
    * @throws IllegalArgumentException Thrown when the input is invalid:
    *  - when the number of partition keys don't match the  number of
    *    partition values

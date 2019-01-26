@@ -3,6 +3,7 @@
  */
 package com.snowflake.core.commands;
 
+import com.google.common.base.Preconditions;
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
@@ -12,6 +13,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 
+import javax.transaction.NotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,13 +29,18 @@ public class CreateExternalTable implements Command
    */
   public CreateExternalTable(CreateTableEvent createTableEvent)
   {
-    this.hiveTable = createTableEvent.getTable();
-    this.hiveConf = createTableEvent.getHandler().getConf();
+    Preconditions.checkNotNull(createTableEvent);
+    this.hiveTable = Preconditions.checkNotNull(createTableEvent.getTable());
+    this.hiveConf = Preconditions.checkNotNull(
+        createTableEvent.getHandler().getConf());
   }
 
   /**
    * Generate the create stage command
-   * @return the Snowflake command generated
+   * @return the Snowflake command generated, for example:
+   *         CREATE STAGE s1 url='s3://bucketname/path/to/table'
+   *         credentials=(AWS_KEY_ID='{accessKeyId}'
+   *                      AWS_SECRET_KEY='{awsSecretKey}');
    * @throws Exception Thrown when the input is invalid
    */
   private SensitiveString generateCreateStageCommand()
@@ -64,10 +71,14 @@ public class CreateExternalTable implements Command
    * @param columnSchema Details about the column
    * @param columnPosition Position of this column (used for CSV columns only)
    * @param snowflakeFileFormatType Snowflake's file format type
-   * @return Snippet of a command that represents a column
+   * @return Snippet of a command that represents a column, for example:
+   *         col1 INT as (VALUE:c1::INT)
+   * @throws NotSupportedException Thrown when the column type is invalid or
+   *                               unsupported.
    */
   private String generateColumnStr(FieldSchema columnSchema, int columnPosition,
                                    String snowflakeFileFormatType)
+    throws NotSupportedException
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -98,9 +109,14 @@ public class CreateExternalTable implements Command
   /**
    * Generate the string for a partition column to be used in the query
    * @param columnSchema Details about the column
-   * @return Snippet of a command that represents a partition column
+   * @return Snippet of a command that represents a partition column, e.g.
+   *         partcol INT as
+   *            (parse_json(metadata$external_table_partition):PARTCOL::INT)
+   * @throws NotSupportedException Thrown when the column type is invalid or
+   *                               unsupported.
    */
   private String generatePartitionColumnStr(FieldSchema columnSchema)
+    throws NotSupportedException
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -118,7 +134,14 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the create table command
-   * @return The equivalent Snowflake command generated
+   * @return The equivalent Snowflake command generated, for example:
+   *         CREATE EXTERNAL TABLE t1(
+   *             partcol INT as
+   *               (parse_json(metadata$external_table_partition):PARTCOL::INT),
+   *             name STRING as
+   *               (parse_json(metadata$external_table_partition):NAME::STRING))
+   *           partition by (partcol,name)location=@s1
+   *           partition_type=user_specified file_format=(TYPE=CSV);
    */
   private String generateCreateTableCommand()
   throws Exception
