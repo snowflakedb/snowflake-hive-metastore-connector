@@ -12,9 +12,15 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class SnowflakeJdbcConf extends Configuration
+/**
+ * The configuration for the Snowflake Hive metastore listener,
+ * which is stored in snowflake-config.xml
+ * @author xma
+ */
+public class SnowflakeConf extends Configuration
 {
-  private static final Logger log = LoggerFactory.getLogger(SnowflakeJdbcConf.class);
+  private static final Logger log = LoggerFactory.getLogger(
+      SnowflakeConf.class);
   public enum ConfVars
   {
     SNOWFLAKE_JDBC_USERNAME("snowflake.jdbc.username", "user",
@@ -30,7 +36,12 @@ public class SnowflakeJdbcConf extends Configuration
     SNOWFLAKE_JDBC_SSL("snowflake.jdbc.ssl", "ssl",
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
-      "The Snowflake connection string.");
+      "The Snowflake connection string."),
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT("snowflake.hivemetastorelistener.retry.count", "retryCount",
+      "The number of retries when connecting with Snowflake"),
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS("snowflake.hivemetastorelistener.retry.timeout",
+      "retryTimeout", "The time between retries when connecting with " +
+      "Snowflake, in milliseconds");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())
@@ -71,7 +82,7 @@ public class SnowflakeJdbcConf extends Configuration
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
     if (classLoader == null)
     {
-      classLoader = SnowflakeJdbcConf.class.getClassLoader();
+      classLoader = SnowflakeConf.class.getClassLoader();
     }
 
     snowflakeConfigUrl = findConfigFile(classLoader, "snowflake-config.xml");
@@ -97,7 +108,7 @@ public class SnowflakeJdbcConf extends Configuration
     }
   }
 
-  public SnowflakeJdbcConf()
+  public SnowflakeConf()
   {
     super(false);
     initialize();

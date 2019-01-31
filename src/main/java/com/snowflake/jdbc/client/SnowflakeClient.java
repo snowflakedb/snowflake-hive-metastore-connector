@@ -3,9 +3,10 @@
  */
 package com.snowflake.jdbc.client;
 
-import com.snowflake.conf.SnowflakeJdbcConf;
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.util.CommandGenerator;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
@@ -37,11 +38,12 @@ public class SnowflakeClient
    * 2. Get the connection to a Snowflake account
    * 3. Run the query on Snowflake
    * @param event - the hive event
-   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
   public static void createAndExecuteEventForSnowflake(
       ListenerEvent event,
-      SnowflakeJdbcConf snowflakeJdbcConf)
+      SnowflakeConf snowflakeConf)
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
@@ -51,7 +53,7 @@ public class SnowflakeClient
     // Some Hive commands require more than one statement in Snowflake
     // For example, for create table, a stage must be created before the table
     log.info("Generating Snowflake queries");
-    List<String> commandList;
+    List<SensitiveString> commandList;
     try
     {
       commandList = command.generateCommands();
@@ -64,15 +66,18 @@ public class SnowflakeClient
 
     // Get connection
     log.info("Getting connection to the Snowflake");
-    // TODO: retry in the case of failure
-    try (Connection connection = getConnection(snowflakeJdbcConf))
+    try (Connection connection = retry(
+        () -> getConnection(snowflakeConf), snowflakeConf))
     {
       commandList.forEach(commandStr ->
       {
-        try (Statement statement = connection.createStatement())
+        try (Statement statement = retry(
+            connection::createStatement, snowflakeConf))
         {
           log.info("Executing command: " + commandStr);
-          ResultSet resultSet = statement.executeQuery(commandStr);
+          ResultSet resultSet = retry(() -> statement.executeQuery(
+              commandStr.toStringWithSensitiveValues()),
+                                      snowflakeConf);
           StringBuilder sb = new StringBuilder();
           sb.append("Result:\n");
           while (resultSet.next())
@@ -108,14 +113,16 @@ public class SnowflakeClient
   }
 
   /**
-   * Get the connection to the snowflake account.
-   * First finds a snowflake driver and connects to Snowflake using the
-   * given properties
-   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
-   * @return
-   * @throws SQLException
+   * Get the connection to the Snowflake account.
+   * First finds a Snowflake driver and connects to Snowflake using the
+   * given properties.
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   * @return The JDBC connection
+   * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(SnowflakeJdbcConf snowflakeJdbcConf)
+  private static Connection getConnection(
+      SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try
@@ -130,10 +137,10 @@ public class SnowflakeClient
     // build connection properties
     Properties properties = new Properties();
 
-    snowflakeJdbcConf.forEach(conf ->
+    snowflakeConf.forEach(conf ->
       {
-        SnowflakeJdbcConf.ConfVars confVar =
-            SnowflakeJdbcConf.ConfVars.findByName(conf.getKey());
+        SnowflakeConf.ConfVars confVar =
+            SnowflakeConf.ConfVars.findByName(conf.getKey());
         if (confVar == null)
         {
           properties.put(conf.getKey(), conf.getValue());
@@ -144,9 +151,80 @@ public class SnowflakeClient
         }
 
       });
-    String connectStr = snowflakeJdbcConf.get(
-        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
+    String connectStr = snowflakeConf.get(
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
 
     return DriverManager.getConnection(connectStr, properties);
+  }
+
+  /**
+   * Helper interface that represents a Supplier that can throw an exception.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   */
+  @FunctionalInterface
+  public interface ThrowableSupplier<T, E extends Throwable>
+  {
+    T get() throws E;
+  }
+
+  /**
+   * Helper method for simple retries.
+   * Note: The total number of attempts is 1 + retries.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   * @param method The method to be executed and retried on.
+   * @param maxRetries The maximum number of retries.
+   * @param timeoutInMilliseconds Time between retries.
+   */
+  private static <T, E extends Throwable> T retry(
+      ThrowableSupplier<T,E> method,
+      int maxRetries,
+      int timeoutInMilliseconds)
+  throws E
+  {
+    // Attempt to call the method with N-1 retries
+    for (int i = 0; i < maxRetries; i++)
+    {
+      try
+      {
+        // Attempt to call the method
+        return method.get();
+      }
+      catch (Exception e)
+      {
+        // Wait between retries
+        try
+        {
+          Thread.sleep(timeoutInMilliseconds);
+        }
+        catch (InterruptedException interruptedEx)
+        {
+          log.error("Thread interrupted.");
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+
+    // Retry one last time, the exception will by handled by the caller
+    return method.get();
+  }
+
+  /**
+   * Helper method for simple retries. Overload for default arguments.
+   * @param <T> The type of object returned by the supplier
+   * @param <E> The type of exception thrown by the supplier
+   * @param method The method to be executed and retried on.
+   */
+  private static <T, E extends Throwable> T retry(
+      ThrowableSupplier<T, E> method,
+      SnowflakeConf snowflakeConf)
+  throws E
+  {
+    int maxRetries = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT.getVarname(), 3);
+    int timeoutInMilliseconds = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS.getVarname(), 1000);
+    return retry(method, maxRetries, timeoutInMilliseconds);
   }
 }

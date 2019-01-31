@@ -3,11 +3,14 @@
  */
 package com.snowflake.core.commands;
 
+import com.google.common.base.Preconditions;
+import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A class for the DropExternalTable command
@@ -17,12 +20,14 @@ public class DropExternalTable implements Command
 
   public DropExternalTable(DropTableEvent dropTableEvent)
   {
-    this.hiveTable = dropTableEvent.getTable();
+    Preconditions.checkNotNull(dropTableEvent);
+    this.hiveTable = Preconditions.checkNotNull(dropTableEvent.getTable());
   }
 
   /**
    * Generates the command for drop external table
-   * @return
+   * @return The Snowflake command generated, for example:
+   *         DROP EXTERNAL TABLE T1;
    */
   private String generateDropTableCommand()
   {
@@ -38,11 +43,10 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the command for drop stage
-   * @return
-   * @throws Exception
+   * @return The Snowflake command generated, for example:
+   *         DROP STAGE S1;
    */
   private String generateDropStageCommand()
-  throws Exception
   {
     StringBuilder sb = new StringBuilder();
 
@@ -56,9 +60,9 @@ public class DropExternalTable implements Command
 
   /**
    * Generates the necessary commands on a hive drop table event
+   * @return The Snowflake commands generated
    */
-  public List<String> generateCommands()
-    throws Exception
+  public List<SensitiveString> generateCommands()
   {
     List<String> queryList = new ArrayList<>();
 
@@ -69,8 +73,9 @@ public class DropExternalTable implements Command
     String dropStageQuery = generateDropStageCommand();
     queryList.add(dropStageQuery);
 
-    return queryList;
+    return queryList
+        .stream().map(SensitiveString::new).collect(Collectors.toList());
   }
 
-  private Table hiveTable;
+  private final Table hiveTable;
 }
