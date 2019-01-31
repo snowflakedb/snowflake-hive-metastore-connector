@@ -33,14 +33,12 @@ public class StringUtilTest
     assertEquals("1 + 2 = 3", strBasic);
 
     // Test an advanced case
-    map.put("three", "{one}"); // Substitutions should not be replaced again
-    map.put("11", "oneone"); // Substitutions should not be replaced again
     map.put("four", "4"); // Keys that aren't referenced should be skipped
     map.put("", "twotwo"); // Empty strings as keys should be skipped
 
     String strAdvanced = StringUtil.format("{1{one}} + {two} = {three}", map);
 
-    assertEquals("{11} + 2 = {one}", strAdvanced);
+    assertEquals("{1{one}} + 2 = 3", strAdvanced);
   }
 
   /**

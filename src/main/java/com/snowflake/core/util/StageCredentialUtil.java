@@ -40,7 +40,7 @@ public enum StageCredentialUtil
    * Get the prefix of the location from the hiveUrl
    * Used for retrieving keys from the config.
    * @param hiveUrl The URL
-   * @return The prefix/protocol from the URL
+   * @return The prefix/protocol from the URL, e.g. s3, s3a
    */
   private static String getLocationPrefix(String hiveUrl)
   {

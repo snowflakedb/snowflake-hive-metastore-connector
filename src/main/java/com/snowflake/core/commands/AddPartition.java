@@ -91,10 +91,10 @@ public class AddPartition implements Command
   /**
    * Generates the commands for add partition.
    * @return The Snowflake commands generated
-   * @throws Exception Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
-      throws Exception
+      throws IllegalArgumentException
   {
     List<String> queryList = new ArrayList<>();
 
@@ -109,7 +109,7 @@ public class AddPartition implements Command
         .stream().map(SensitiveString::new).collect(Collectors.toList());
   }
 
-  private Table hiveTable;
+  private final Table hiveTable;
 
-  private Supplier<Iterator<Partition>> getPartititonsIterator;
+  private final Supplier<Iterator<Partition>> getPartititonsIterator;
 }

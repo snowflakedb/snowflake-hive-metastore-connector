@@ -3,7 +3,7 @@
  */
 package com.snowflake.jdbc.client;
 
-import com.snowflake.conf.SnowflakeJdbcConf;
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.util.CommandGenerator;
 import com.snowflake.core.util.StringUtil.SensitiveString;
@@ -38,11 +38,12 @@ public class SnowflakeClient
    * 2. Get the connection to a Snowflake account
    * 3. Run the query on Snowflake
    * @param event - the hive event
-   * @param snowflakeJdbcConf - the configuration for snowflake jdbc
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
   public static void createAndExecuteEventForSnowflake(
       ListenerEvent event,
-      SnowflakeJdbcConf snowflakeJdbcConf)
+      SnowflakeConf snowflakeConf)
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
@@ -66,16 +67,17 @@ public class SnowflakeClient
     // Get connection
     log.info("Getting connection to the Snowflake");
     try (Connection connection = retry(
-      () -> getConnection(snowflakeJdbcConf), snowflakeJdbcConf))
+        () -> getConnection(snowflakeConf), snowflakeConf))
     {
       commandList.forEach(commandStr ->
       {
         try (Statement statement = retry(
-            connection::createStatement, snowflakeJdbcConf))
+            connection::createStatement, snowflakeConf))
         {
           log.info("Executing command: " + commandStr);
           ResultSet resultSet = retry(() -> statement.executeQuery(
-              commandStr.toStringWithSensitiveValues()), snowflakeJdbcConf);
+              commandStr.toStringWithSensitiveValues()),
+                                      snowflakeConf);
           StringBuilder sb = new StringBuilder();
           sb.append("Result:\n");
           while (resultSet.next())
@@ -114,11 +116,13 @@ public class SnowflakeClient
    * Get the connection to the Snowflake account.
    * First finds a Snowflake driver and connects to Snowflake using the
    * given properties.
-   * @param snowflakeJdbcConf - the configuration for Snowflake JDBC
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(SnowflakeJdbcConf snowflakeJdbcConf)
+  private static Connection getConnection(
+      SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try
@@ -133,10 +137,10 @@ public class SnowflakeClient
     // build connection properties
     Properties properties = new Properties();
 
-    snowflakeJdbcConf.forEach(conf ->
+    snowflakeConf.forEach(conf ->
       {
-        SnowflakeJdbcConf.ConfVars confVar =
-            SnowflakeJdbcConf.ConfVars.findByName(conf.getKey());
+        SnowflakeConf.ConfVars confVar =
+            SnowflakeConf.ConfVars.findByName(conf.getKey());
         if (confVar == null)
         {
           properties.put(conf.getKey(), conf.getValue());
@@ -147,8 +151,8 @@ public class SnowflakeClient
         }
 
       });
-    String connectStr = snowflakeJdbcConf.get(
-        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
+    String connectStr = snowflakeConf.get(
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
 
     return DriverManager.getConnection(connectStr, properties);
   }
@@ -214,13 +218,13 @@ public class SnowflakeClient
    */
   private static <T, E extends Throwable> T retry(
       ThrowableSupplier<T, E> method,
-      SnowflakeJdbcConf snowflakeJdbcConf)
+      SnowflakeConf snowflakeConf)
   throws E
   {
-    int maxRetries = snowflakeJdbcConf.getInt(
-        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_RETRY_COUNT.getVarname(), 3);
-    int timeoutInMilliseconds = snowflakeJdbcConf.getInt(
-        SnowflakeJdbcConf.ConfVars.SNOWFLAKE_JDBC_RETRY_TIMEOUT_MILLISECONDS.getVarname(), 1000);
+    int maxRetries = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT.getVarname(), 3);
+    int timeoutInMilliseconds = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS.getVarname(), 1000);
     return retry(method, maxRetries, timeoutInMilliseconds);
   }
 }

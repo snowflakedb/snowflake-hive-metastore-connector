@@ -45,10 +45,8 @@ public class DropExternalTable implements Command
    * Generates the command for drop stage
    * @return The Snowflake command generated, for example:
    *         DROP STAGE S1;
-   * @throws Exception Thrown when the input is invalid
    */
   private String generateDropStageCommand()
-    throws Exception
   {
     StringBuilder sb = new StringBuilder();
 
@@ -65,7 +63,6 @@ public class DropExternalTable implements Command
    * @return The Snowflake commands generated
    */
   public List<SensitiveString> generateCommands()
-    throws Exception
   {
     List<String> queryList = new ArrayList<>();
 
@@ -80,5 +77,5 @@ public class DropExternalTable implements Command
         .stream().map(SensitiveString::new).collect(Collectors.toList());
   }
 
-  private Table hiveTable;
+  private final Table hiveTable;
 }

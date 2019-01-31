@@ -44,7 +44,7 @@ public class CreateExternalTable implements Command
    * @throws Exception Thrown when the input is invalid
    */
   private SensitiveString generateCreateStageCommand()
-  throws Exception
+  throws NotSupportedException
   {
     StringBuilder sb = new StringBuilder();
     String url = hiveTable.getSd().getLocation();
@@ -144,7 +144,7 @@ public class CreateExternalTable implements Command
    *           partition_type=user_specified file_format=(TYPE=CSV);
    */
   private String generateCreateTableCommand()
-  throws Exception
+  throws NotSupportedException
   {
 
     StringBuilder sb = new StringBuilder();
@@ -221,10 +221,10 @@ public class CreateExternalTable implements Command
    * Generates a create stage command followed by a create
    * external table command
    * @return The Snowflake commands generated
-   * @throws Exception Thrown when the input is invalid
+   * @throws NotSupportedException Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
-      throws Exception
+      throws NotSupportedException
   {
     List<SensitiveString> queryList = new ArrayList<>();
 
@@ -239,7 +239,7 @@ public class CreateExternalTable implements Command
     return queryList;
   }
 
-  private Table hiveTable;
+  private final Table hiveTable;
 
-  private Configuration hiveConf;
+  private final Configuration hiveConf;
 }

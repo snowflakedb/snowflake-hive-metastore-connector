@@ -1,4 +1,4 @@
-import com.snowflake.conf.SnowflakeJdbcConf;
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.jdbc.client.SnowflakeClient;
@@ -64,7 +64,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
 
@@ -105,7 +105,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
 
@@ -147,7 +147,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
 
@@ -186,7 +186,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
 
@@ -230,7 +230,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
-                     "credentials=(AWS_KEY_ID='{accessKeyId}'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
 
@@ -282,12 +282,13 @@ public class CreateTableTest
         .thenReturn(mockConnection);
 
     // Mock configuration to have a wait time of zero (so tests are quick)
-    SnowflakeJdbcConf mockConfig = PowerMockito.mock(SnowflakeJdbcConf.class);
+    SnowflakeConf
+        mockConfig = PowerMockito.mock(SnowflakeConf.class);
     PowerMockito
-        .when(mockConfig.getInt("snowflake.jdbc.retry.timeout", 1000))
+        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
         .thenReturn(0);
     PowerMockito
-        .when(mockConfig.getInt("snowflake.jdbc.retry.count", 3))
+        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
         .thenReturn(3);
 
     // Execute an event
@@ -303,8 +304,8 @@ public class CreateTableTest
     Mockito
         .verify(mockStatement, Mockito.times(2))
         .executeQuery("CREATE STAGE t1 url='s3://bucketname/path/to/table'" +
-                          "\ncredentials=(AWS_KEY_ID='{accessKeyId}'" +
-                          "\nAWS_SECRET_KEY='{awsSecretKey}');");
+                          "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
+                          "\nAWS_SECRET_KEY='awsSecretKey');");
     Mockito
         .verify(mockStatement, Mockito.times(2))
         .executeQuery(
@@ -328,9 +329,9 @@ public class CreateTableTest
     HiveMetaStore.HMSHandler mockHandler =
         PowerMockito.mock(HiveMetaStore.HMSHandler.class);
     PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
-        .thenReturn("{accessKeyId}");
+        .thenReturn("accessKeyId");
     PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
-        .thenReturn("{awsSecretKey}");
+        .thenReturn("awsSecretKey");
     PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
 
     return mockHandler;

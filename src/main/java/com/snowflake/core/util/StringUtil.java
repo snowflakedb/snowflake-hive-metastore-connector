@@ -4,8 +4,8 @@ import javafx.util.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.apache.commons.text.StringSubstitutor;
 
 /**
  * A utility class for formatting strings
@@ -25,27 +25,7 @@ public class StringUtil
    */
   public static String format(String format, Map<String, String> args)
   {
-    if (args.isEmpty())
-    {
-      return format;
-    }
-
-    // Create a regex that matches a set of strings, e.g. {(one|two|three)}
-    Pattern keyPattern = Pattern.compile(
-      "\\{(" +
-        String.join("|", args.keySet()) +
-      ")\\}");
-    Matcher matcher = keyPattern.matcher(format);
-
-    // Find each match, and replace then the appropriate value.
-    StringBuffer sb = new StringBuffer();
-    while (matcher.find()) {
-      String found = matcher.group(1);
-      matcher.appendReplacement(sb, args.get(found));
-    }
-    matcher.appendTail(sb);
-
-    return sb.toString();
+    return StringSubstitutor.replace(format, args, "{", "}");
   }
 
   /**

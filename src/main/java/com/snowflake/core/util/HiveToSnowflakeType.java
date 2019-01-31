@@ -27,7 +27,7 @@ public class HiveToSnowflakeType
   /**
    * The mapping from a Hive datatype to a Snowflake datatype
    */
-  public static ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
+  public static final ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
       new ImmutableMap.Builder<String, String>()
       .put("BOOLEAN", "BOOLEAN")
       .put("TINYINT", "SMALLINT")
@@ -61,7 +61,7 @@ public class HiveToSnowflakeType
   /**
    * Regex pattern to match a set of strings, e.g. (CSV|JSON|PARQUET)
    */
-  private static Pattern sfFileFmtTypeRegex = Pattern.compile(
+  private static final Pattern sfFileFmtTypeRegex = Pattern.compile(
       "(" + String.join(
           "|",
           Arrays.stream(SnowflakeFileFormatTypes.values())
