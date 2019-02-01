@@ -37,15 +37,15 @@ public class LogCommand implements Command
 
   /**
    * Generates no-op logging commands, for example:
-   * SELECT NULL \* LOGS IN COMMENTS *\;
+   * SELECT NULL /* LOGS IN COMMENTS * /;
    * @return The Snowflake commands generated
    */
   public List<SensitiveString> generateCommands()
   {
     return ImmutableList.<SensitiveString>builder()
         .add(new SensitiveString(
-            String.format("SELECT NULL \\* %s *\\;", this.log)
-                .replace("*\\", "* \\")))
+            String.format("SELECT NULL /* %s */;",
+                          this.log.replace("*/", "* /"))))
         .build().asList();
   }
 

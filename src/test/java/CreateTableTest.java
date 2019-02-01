@@ -452,8 +452,9 @@ public class CreateTableTest
     Mockito
         .verify(mockStatement, Mockito.times(1)) // No retries
         .executeQuery(
-            "SELECT NULL \\* HIVE METASTORE LISTENER ERROR: 'Snowflake does " +
-                "not support the corresponding SerDe: NOT A VALID SERDE' * \\;");
+            "SELECT NULL /* HIVE METASTORE LISTENER ERROR: " +
+                "'Snowflake does not support the corresponding SerDe: " +
+                "NOT A VALID SERDE' */;");
   }
 
   /**
