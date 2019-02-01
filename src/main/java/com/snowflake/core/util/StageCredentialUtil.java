@@ -6,6 +6,7 @@ package com.snowflake.core.util;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 
+import javax.transaction.NotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,10 +14,13 @@ import java.util.Map;
  * A utility function to help with retrieving stage credentials and generating
  * the credential string for Snowflake.
  */
-public enum StageCredentialUtil
+public class StageCredentialUtil
 {
   // TODO: Support more stages
-  AWS;
+  public enum StageCredentialType
+  {
+    AWS;
+  }
 
   /**
    * Get a stage type from the Hive table location
@@ -25,15 +29,15 @@ public enum StageCredentialUtil
    * @throws IllegalArgumentException Thrown when the URL or stage type is
    *                                  invalid or unsupported.
    */
-  private static StageCredentialUtil getStageTypeFromURL(String url)
-  throws IllegalArgumentException
+  private static StageCredentialType getStageTypeFromURL(String url)
+    throws IllegalArgumentException
   {
     if (url.startsWith("s3"))
     {
-      return StageCredentialUtil.AWS;
+      return StageCredentialType.AWS;
     }
     throw new IllegalArgumentException(
-        "The stage type does not exist or is unsupported.");
+        "The stage type does not exist or is unsupported for URL: " + url);
   }
 
   /**
@@ -49,7 +53,8 @@ public enum StageCredentialUtil
   }
 
   /**
-   * Get the credentials for the given stage in the url.
+   * Get the credentials for the given stage in the url, for example:
+   *  credentials=(AWS_KEY_ID='{accessKey}' AWS_SECRET_KEY='{awsSecretKey}')
    * @param url The URL
    * @param config The Hadoop configuration
    * @return Snippet that represents credentials for the given location
@@ -57,44 +62,48 @@ public enum StageCredentialUtil
    */
   public static SensitiveString generateCredentialsString(
       String url, Configuration config)
-  throws IllegalArgumentException
   {
-    StageCredentialUtil stageType = getStageTypeFromURL(url);
-
-    switch(stageType)
+    try
     {
-      case AWS:
+      StageCredentialType stageType = getStageTypeFromURL(url);
+
+      switch(stageType)
       {
-        // Get the AWS access keys
-        // Note: with s3a, "fs.s3a.access.key" is also a valid configuration,
-        //       so check both "fs.X.access.key" and "fs.X.awsAccessKeyId"
-        String prefix = getLocationPrefix(url);
-        String accessKey = config.get("fs." + prefix + ".awsAccessKeyId");
-        if (accessKey == null)
-        {
-          accessKey = config.get("fs." + prefix + ".access.key");
-        }
+        case AWS:
+          // Get the AWS access keys
+          // Note: with s3a, "fs.s3a.access.key" is also a valid configuration,
+          //       so check both "fs.X.access.key" and "fs.X.awsAccessKeyId"
+          String prefix = getLocationPrefix(url);
+          String accessKey = config.get("fs." + prefix + ".awsAccessKeyId");
+          if (accessKey == null)
+          {
+            accessKey = config.get("fs." + prefix + ".access.key");
+          }
 
-        String secretKey = config.get("fs." + prefix + ".awsSecretAccessKey");
-        if (secretKey == null)
-        {
-          secretKey = config.get("fs." + prefix + ".secret.key");
-        }
+          String secretKey = config.get("fs." + prefix + ".awsSecretAccessKey");
+          if (secretKey == null)
+          {
+            secretKey = config.get("fs." + prefix + ".secret.key");
+          }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("credentials=(");
-        sb.append("AWS_KEY_ID=");
-        sb.append("'" + accessKey + "'\n");
-        sb.append("AWS_SECRET_KEY='{awsSecretKey}')");
+          String credentialsFormat = String.format(
+              "credentials=(AWS_KEY_ID='%s'\n" +
+                  "AWS_SECRET_KEY='{awsSecretKey}')", accessKey);
 
-        Map<String, String> secrets = new HashMap<>();
-        secrets.put("awsSecretKey", secretKey);
-        return new SensitiveString(sb.toString(), secrets);
+          Map<String, String> secrets = new HashMap<>();
+          secrets.put("awsSecretKey", secretKey);
+          return new SensitiveString(credentialsFormat, secrets);
+
+        default:
+          throw new NotSupportedException("Unsupported stage type: " +
+                                          stageType.name());
       }
-      default:
-        throw new IllegalArgumentException(
-            "Cannot get credentials for the stage type: " + stageType.name());
+    }
+    catch (Exception e)
+    {
+      return new SensitiveString(String.format(
+          "credentials=(/* Error generating credentials expression: %s */)",
+          e.getMessage()));
     }
   }
-
 }
