@@ -2,7 +2,6 @@
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
 import com.snowflake.core.commands.DropExternalTable;
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -44,15 +43,15 @@ public class DropTableTest
 
     DropExternalTable dropExternalTable = new DropExternalTable(dropTableEvent);
 
-    List<SensitiveString> commands = dropExternalTable.generateCommands();
+    List<String> commands = dropExternalTable.generateCommands();
     assertEquals("generated drop table command does not match " +
         "expected drop table command",
         "DROP EXTERNAL TABLE IF EXISTS t1;",
-        commands.get(0).toString());
+        commands.get(0));
 
     assertEquals("generated drop stage command does not match " +
         "expected drop stage command",
         "DROP STAGE IF EXISTS t1;",
-        commands.get(1).toString());
+        commands.get(1));
   }
 }

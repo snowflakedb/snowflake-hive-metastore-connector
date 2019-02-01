@@ -5,7 +5,6 @@ package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
 import com.snowflake.core.util.StringUtil;
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -76,7 +75,7 @@ public class AddPartition implements Command
    * Generates the commands for add partition.
    * @return The Snowflake commands generated
    */
-  public List<SensitiveString> generateCommands()
+  public List<String> generateCommands()
   {
     List<String> queryList = new ArrayList<>();
 
@@ -87,8 +86,7 @@ public class AddPartition implements Command
       queryList.add(this.generateAddPartitionCommand(partition));
     }
 
-    return queryList
-        .stream().map(SensitiveString::new).collect(Collectors.toList());
+    return queryList;
   }
 
   private final Table hiveTable;

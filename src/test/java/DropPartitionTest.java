@@ -1,5 +1,4 @@
 import com.snowflake.core.commands.DropPartition;
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -52,13 +51,13 @@ public class DropPartitionTest
 
     DropPartition dropPartition = new DropPartition(dropPartitionEvent);
 
-    List<SensitiveString> commands = dropPartition.generateCommands();
+    List<String> commands = dropPartition.generateCommands();
     assertEquals("generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 DROP PARTITION " +
                      "LOCATION 'sub/path' " +
                      "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
-                 commands.get(0).toString());
+                 commands.get(0));
   }
 
   /**
@@ -98,19 +97,19 @@ public class DropPartitionTest
 
     DropPartition dropPartition = new DropPartition(dropPartitionEvent);
 
-    List<SensitiveString> commands = dropPartition.generateCommands();
+    List<String> commands = dropPartition.generateCommands();
     assertEquals("first generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 DROP PARTITION " +
                      "LOCATION 'sub/path' " +
                      "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
-                 commands.get(0).toString());
+                 commands.get(0));
     assertEquals("second generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 DROP PARTITION " +
                      "LOCATION 'sub/path2' " +
                      "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
-                 commands.get(1).toString());
+                 commands.get(1));
   }
 
   private static Table createMockTable()
