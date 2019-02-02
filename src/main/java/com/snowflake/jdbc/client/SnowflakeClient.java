@@ -47,7 +47,7 @@ public class SnowflakeClient
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
-    Command command = CommandGenerator.getCommand(event);
+    Command command = CommandGenerator.getCommand(event, snowflakeConf);
 
     // Generate the string queries for the command
     // Some Hive commands require more than one statement in Snowflake

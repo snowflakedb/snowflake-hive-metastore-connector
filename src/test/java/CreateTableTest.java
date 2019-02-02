@@ -58,7 +58,7 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+        new CreateExternalTable(createTableEvent, new SnowflakeConf());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -99,7 +99,7 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+        new CreateExternalTable(createTableEvent, new SnowflakeConf());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -141,7 +141,7 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+        new CreateExternalTable(createTableEvent, new SnowflakeConf());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -180,7 +180,7 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+        new CreateExternalTable(createTableEvent, new SnowflakeConf());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -224,7 +224,7 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent);
+        new CreateExternalTable(createTableEvent, new SnowflakeConf());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -244,6 +244,41 @@ public class CreateTableTest
                      "partition by (partcol,name)location=@t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
                  commands.get(1).toString());
+  }
+
+  /**
+   * A test for generating a create table command for a table with an
+   * existing stage.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void existingStageCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    SnowflakeConf
+        mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .thenReturn("testStage");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    List<SensitiveString> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@testStage " +
+                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                 commands.get(0).toString());
+    assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
 
   /**

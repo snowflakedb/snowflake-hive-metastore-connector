@@ -37,6 +37,8 @@ public class SnowflakeConf extends Configuration
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
       "The Snowflake connection string."),
+    SNOWFLAKE_HIVEMETASTORELISTENER_STAGE("snowflake.hivemetastorelistener.stage", "stage",
+      "The stage to use when creating external tables with Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT("snowflake.hivemetastorelistener.retry.count", "retryCount",
       "The number of retries when connecting with Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS("snowflake.hivemetastorelistener.retry.timeout",

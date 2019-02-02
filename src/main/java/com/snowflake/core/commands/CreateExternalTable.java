@@ -4,6 +4,8 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.snowflake.conf.SnowflakeConf;
+import com.snowflake.conf.SnowflakeConf.ConfVars;
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
@@ -26,13 +28,17 @@ public class CreateExternalTable implements Command
   /**
    * Creates a CreateExternalTable command
    * @param createTableEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
-  public CreateExternalTable(CreateTableEvent createTableEvent)
+  public CreateExternalTable(CreateTableEvent createTableEvent,
+                             SnowflakeConf snowflakeConf)
   {
     Preconditions.checkNotNull(createTableEvent);
     this.hiveTable = Preconditions.checkNotNull(createTableEvent.getTable());
     this.hiveConf = Preconditions.checkNotNull(
         createTableEvent.getHandler().getConf());
+    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
   }
 
   /**
@@ -143,7 +149,7 @@ public class CreateExternalTable implements Command
    *           partition by (partcol,name)location=@s1
    *           partition_type=user_specified file_format=(TYPE=CSV);
    */
-  private String generateCreateTableCommand()
+  private String generateCreateTableCommand(String location)
   throws NotSupportedException
   {
 
@@ -200,7 +206,7 @@ public class CreateExternalTable implements Command
 
     // location
     sb.append("location=@");
-    sb.append(hiveTable.getTableName() + " ");
+    sb.append(location + " ");
 
     // partition_type
     sb.append("partition_type=user_specified ");
@@ -228,11 +234,16 @@ public class CreateExternalTable implements Command
   {
     List<SensitiveString> queryList = new ArrayList<>();
 
-    SensitiveString createStageQuery = generateCreateStageCommand();
+    String location = snowflakeConf.get(
+        ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_STAGE.getVarname(), null);
+    if (location == null)
+    {
+      SensitiveString createStageQuery = generateCreateStageCommand();
+      queryList.add(createStageQuery);
+      location = hiveTable.getTableName();
+    }
 
-    queryList.add(createStageQuery);
-
-    String createTableQuery = generateCreateTableCommand();
+    String createTableQuery = generateCreateTableCommand(location);
 
     queryList.add(new SensitiveString(createTableQuery));
 
@@ -242,4 +253,6 @@ public class CreateExternalTable implements Command
   private final Table hiveTable;
 
   private final Configuration hiveConf;
+
+  private final SnowflakeConf snowflakeConf;
 }
