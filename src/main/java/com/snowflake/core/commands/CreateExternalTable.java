@@ -10,14 +10,21 @@ import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
+import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 
 import javax.transaction.NotSupportedException;
+import java.net.URI;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A class for the CreateExternalTable command
@@ -222,6 +229,47 @@ public class CreateExternalTable implements Command
     return sb.toString();
   }
 
+  private String getStageLocationFromStageName(String stageName)
+      throws SQLException
+  {
+    // Go to Snowflake to fetch the stage location
+    ResultSet result = SnowflakeClient.executeStatement(
+        String.format("DESC STAGE %s;", stageName), snowflakeConf);
+
+    // Find columns called 'property' and 'property_value', and find a row with
+    // property as "URL". The property_value will contain the URL
+    HashMap<String, Integer> propertyIndices = new HashMap<>();
+    for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
+    {
+      propertyIndices.put(result.getMetaData().getColumnName(i).toUpperCase(), i);
+    }
+    Preconditions.checkState(propertyIndices.containsKey("PROPERTY") &&
+                                 propertyIndices.containsKey("PROPERTY_VALUE"),
+                             "Could not find URL property for stage: ", stageName);
+
+    String url = null;
+    while (result.next())
+    {
+      String property = result.getString(propertyIndices.get("PROPERTY"));
+      if (property.equalsIgnoreCase("URL"))
+      {
+        url = result.getString(propertyIndices.get("PROPERTY_VALUE"));
+        break;
+      }
+    }
+    Preconditions.checkNotNull(url, "Could not find URL for stage: ", stageName);
+
+    // The URL may be a list in the form '["url1", ...]'. Get the first URL
+    // if it is in this form.
+    Matcher matcher = Pattern.compile("\\[\"([^\"]+)\"").matcher(url);
+    if (matcher.find())
+    {
+      url = matcher.group(1);
+    }
+
+    return url;
+  }
+
   /**
    * Generates the commands for create external table
    * Generates a create stage command followed by a create
@@ -230,22 +278,42 @@ public class CreateExternalTable implements Command
    * @throws NotSupportedException Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
-      throws NotSupportedException
+      throws NotSupportedException, SQLException
   {
     List<SensitiveString> queryList = new ArrayList<>();
 
-    String location = snowflakeConf.get(
+    String stage = snowflakeConf.get(
         ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_STAGE.getVarname(), null);
-    if (location == null)
+    String location;
+    if (stage != null)
     {
+      // A stage was specified, use it
+      URI tableLocation = URI.create(HiveToSnowflakeType.toSnowflakeURL(
+          hiveTable.getSd().getLocation()));
+      URI stageLocation = URI.create(getStageLocationFromStageName(stage));
+      URI relativeLocation = stageLocation.relativize(tableLocation);
+
+      // If the relativized URI is still absolute, then relativizing failed
+      // because the partition location was invalid.
+      Preconditions.checkArgument(
+          !relativeLocation.isAbsolute(),
+          String.format("The table location must be a subpath of the stage " +
+                        "location. tableLocation: '%s', stageLocation: '%s', " +
+                        "relativePath: '%s'", tableLocation,
+                        stageLocation, relativeLocation));
+
+      location = stage + "/" + relativeLocation;
+    }
+    else
+    {
+      // No stage was specified, create one
       SensitiveString createStageQuery = generateCreateStageCommand();
       queryList.add(createStageQuery);
-      location = hiveTable.getTableName();
+      location = hiveTable.getTableName(); // Stage and table names are the same
     }
 
-    String createTableQuery = generateCreateTableCommand(location);
-
-    queryList.add(new SensitiveString(createTableQuery));
+    Preconditions.checkNotNull(location);
+    queryList.add(new SensitiveString(generateCreateTableCommand(location)));
 
     return queryList;
   }

@@ -112,6 +112,29 @@ public class SnowflakeClient
     }
   }
 
+  public static ResultSet executeStatement(String commandStr,
+                                           SnowflakeConf snowflakeConf)
+      throws SQLException
+  {
+    try (Connection connection = retry(() -> getConnection(snowflakeConf),
+                                       snowflakeConf);
+         Statement statement = retry(connection::createStatement,
+                                     snowflakeConf))
+    {
+      log.info("Executing command: " + commandStr);
+      ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
+                                  snowflakeConf);
+      log.info("Command successfully executed");
+      return resultSet;
+    }
+    catch (SQLException e)
+    {
+      log.info("There was an error executing this statement or forming a " +
+                   "connection: " + e.getMessage());
+      throw e;
+    }
+  }
+
   /**
    * Get the connection to the Snowflake account.
    * First finds a Snowflake driver and connects to Snowflake using the

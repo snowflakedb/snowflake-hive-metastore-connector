@@ -20,6 +20,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import javax.sql.RowSet;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
@@ -257,11 +259,14 @@ public class CreateTableTest
   {
     Table table = initializeMockTable();
 
-    SnowflakeConf
-        mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    // Mock config
+    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
-        .thenReturn("testStage");
+        .thenReturn("aStage");
+
+    // Mock Snowflake client to return a location for this stage
+    mockSnowflakeStageWithLocation("s3://bucketname/path");
 
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, initializeMockHMSHandler());
@@ -275,10 +280,91 @@ public class CreateTableTest
                  "CREATE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@testStage " +
+                     "partition by (partcol,name)location=@aStage/to/table " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(0).toString());
     assertEquals("Unexpected number of commands generated", 1, commands.size());
+  }
+
+  /**
+   * A test for generating a create table command for a table with an
+   * existing stage. Tests the case that the stage name and path are the same
+   *
+   * @throws Exception
+   */
+  @Test
+  public void existingStageSamePathCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    // Mock config
+    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .thenReturn("aStage");
+
+    // Mock Snowflake client to return a location for this stage
+    mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    List<SensitiveString> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)location=@aStage/ " +
+                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                 commands.get(0).toString());
+    assertEquals("Unexpected number of commands generated", 1, commands.size());
+  }
+
+  /**
+   * A test for generating a create table command for a table with an
+   * existing stage. Tests the case that the stage name and path are the same
+   *
+   * @throws Exception
+   */
+  @Test
+  public void existingStageInvalidCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = initializeMockTable();
+
+    // Mock config
+    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .thenReturn("aStage");
+
+    // Mock Snowflake client to return a location for this stage
+    mockSnowflakeStageWithLocation("s3://bucketname2");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    boolean threwCorrectException = false;
+    try
+    {
+      createExternalTable.generateCommands();
+    }
+    catch (IllegalArgumentException ex)
+    {
+      assertEquals("The table location must be a subpath of the stage location. " +
+                       "tableLocation: 's3://bucketname/path/to/table', " +
+                       "stageLocation: 's3://bucketname2', " +
+                       "relativePath: 's3://bucketname/path/to/table'",
+                   ex.getMessage());
+      threwCorrectException = true;
+    }
+    assertTrue(threwCorrectException);
   }
 
   /**
@@ -394,5 +480,40 @@ public class CreateTableTest
     table.setParameters(new HashMap<>());
 
     return table;
+  }
+
+  /**
+   * Helper class to mock the Snowflake client to return the provided stage
+   * location when querying Snowflake with a stage
+   * @param stageLocation The location that should be returned by the Snowflake
+   *                      client.
+   */
+  private void mockSnowflakeStageWithLocation(String stageLocation)
+  throws Exception
+  {
+    ResultSetMetaData mockMetadata = PowerMockito.mock(ResultSetMetaData.class);
+    PowerMockito.when(mockMetadata.getColumnCount()).thenReturn(3);
+    PowerMockito.when(mockMetadata.getColumnName(1)).thenReturn("something");
+    PowerMockito.when(mockMetadata.getColumnName(2)).thenReturn("property");
+    PowerMockito.when(mockMetadata.getColumnName(3)).thenReturn("property_value");
+    RowSet mockRowSet = PowerMockito.mock(RowSet.class);
+    PowerMockito
+        .when(mockRowSet.next())
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(false);
+    PowerMockito
+        .when(mockRowSet.getString(2))
+        .thenReturn("something")
+        .thenReturn("URL");
+    PowerMockito
+        .when(mockRowSet.getString(3))
+        .thenReturn("[\"" + stageLocation + "\", \"\"other location\"]");
+    PowerMockito.when(mockRowSet.getMetaData()).thenReturn(mockMetadata);
+    PowerMockito.mockStatic(SnowflakeClient.class);
+    PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
+        .when(SnowflakeClient.executeStatement(anyString(),
+                                               any(SnowflakeConf.class)))
+        .thenReturn(mockRowSet);
   }
 }
