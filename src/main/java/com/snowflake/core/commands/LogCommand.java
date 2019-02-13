@@ -7,6 +7,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
 /**
@@ -31,8 +33,11 @@ public class LogCommand implements Command
   public LogCommand(Exception error)
   {
     Preconditions.checkNotNull(error);
-    this.log = String.format("HIVE METASTORE LISTENER ERROR: '%s'",
-                             error.getMessage());
+    this.log = String.format("HIVE METASTORE LISTENER ERROR (%s): '%s'\n" +
+                                 "STACKTRACE: '%s'",
+                             error.getClass().getCanonicalName(),
+                             error.getMessage(),
+                             getStackTrace(error));
   }
 
   /**
@@ -47,6 +52,18 @@ public class LogCommand implements Command
             String.format("SELECT NULL /* %s */;",
                           this.log.replace("*/", "* /"))))
         .build().asList();
+  }
+
+  /**
+   * Helper method to get a stack trace from an exception
+   * @param ex The exception
+   * @return The stack trace of the given exception
+   */
+  private static String getStackTrace(Exception ex)
+  {
+    StringWriter stringWriter = new StringWriter();
+    ex.printStackTrace(new PrintWriter(stringWriter, true));
+    return stringWriter.getBuffer().toString();
   }
 
   private final String log;
