@@ -60,12 +60,12 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, new SnowflakeConf());
+        new CreateExternalTable(createTableEvent, initializeMockConfig());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                 "CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
@@ -101,12 +101,12 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, new SnowflakeConf());
+        new CreateExternalTable(createTableEvent, initializeMockConfig());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                 "CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
@@ -143,12 +143,12 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, new SnowflakeConf());
+        new CreateExternalTable(createTableEvent, initializeMockConfig());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                 "CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
@@ -182,12 +182,12 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, new SnowflakeConf());
+        new CreateExternalTable(createTableEvent, initializeMockConfig());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                 "CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
@@ -226,12 +226,12 @@ public class CreateTableTest
         new CreateTableEvent(table, true, initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, new SnowflakeConf());
+        new CreateExternalTable(createTableEvent, initializeMockConfig());
 
     List<SensitiveString> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE t1 url='s3://bucketname/path/to/table'\n" +
+                 "CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='{awsSecretKey}');",
                  commands.get(0).toString());
@@ -260,7 +260,7 @@ public class CreateTableTest
     Table table = initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    SnowflakeConf mockConfig = initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
@@ -298,7 +298,7 @@ public class CreateTableTest
     Table table = initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    SnowflakeConf mockConfig = initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
@@ -336,7 +336,7 @@ public class CreateTableTest
     Table table = initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    SnowflakeConf mockConfig = initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
@@ -404,13 +404,7 @@ public class CreateTableTest
 
     // Mock configuration to have a wait time of zero (so tests are quick)
     SnowflakeConf
-        mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
+        mockConfig = initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -424,7 +418,7 @@ public class CreateTableTest
 
     Mockito
         .verify(mockStatement, Mockito.times(2))
-        .executeQuery("CREATE STAGE t1 url='s3://bucketname/path/to/table'" +
+        .executeQuery("CREATE STAGE someDB_t1 url='s3://bucketname/path/to/table'" +
                           "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
                           "\nAWS_SECRET_KEY='awsSecretKey');");
     Mockito
@@ -440,7 +434,7 @@ public class CreateTableTest
   }
 
   /**
-   * Helper class to initialize the Hive metastore handler, which is commonly
+   * Helper method to initialize the Hive metastore handler, which is commonly
    * used for tests in this class.
    */
   private HiveMetaStore.HMSHandler initializeMockHMSHandler()
@@ -459,7 +453,26 @@ public class CreateTableTest
   }
 
   /**
-   * Helper class to initialize a base Table object for tests
+   * Helper method to initialize the SnowflakeConf configuration class,
+   * which is commonly used for tests in this class.
+   */
+  private SnowflakeConf initializeMockConfig()
+  {
+    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
+    PowerMockito
+        .when(mockConfig.get("snowflake.jdbc.db", null))
+        .thenReturn("someDB");
+    PowerMockito
+        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
+        .thenReturn(0);
+    PowerMockito
+        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
+        .thenReturn(3);
+    return mockConfig;
+  }
+
+  /**
+   * Helper method to initialize a base Table object for tests
    */
   private Table initializeMockTable()
   {
@@ -483,7 +496,7 @@ public class CreateTableTest
   }
 
   /**
-   * Helper class to mock the Snowflake client to return the provided stage
+   * Helper method to mock the Snowflake client to return the provided stage
    * location when querying Snowflake with a stage
    * @param stageLocation The location that should be returned by the Snowflake
    *                      client.

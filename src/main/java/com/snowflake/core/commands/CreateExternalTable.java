@@ -66,7 +66,9 @@ public class CreateExternalTable implements Command
     sb.append("CREATE STAGE ");
     // we use the table name as the stage name since every external table must
     // be linked to a stage and every table has a unique name
-    sb.append(hiveTable.getTableName() + " ");
+    sb.append(String.format("%s_%s ",
+                            snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(), null),
+                            hiveTable.getTableName()));
 
     sb.append("url='");
     sb.append(HiveToSnowflakeType.toSnowflakeURL(url) + "'\n");
@@ -283,7 +285,7 @@ public class CreateExternalTable implements Command
     List<SensitiveString> queryList = new ArrayList<>();
 
     String stage = snowflakeConf.get(
-        ConfVars.SNOWFLAKE_HIVEMETASTORELISTENER_STAGE.getVarname(), null);
+        ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
     String location;
     if (stage != null)
     {
