@@ -17,7 +17,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 
-import javax.transaction.NotSupportedException;
+import java.lang.UnsupportedOperationException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -43,6 +43,26 @@ public class CreateExternalTable implements Command
     this.hiveConf = Preconditions.checkNotNull(
         createTableEvent.getHandler().getConf());
     this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
+    this.canReplace = true;
+  }
+
+  /**
+   * Creates a CreateExternalTable command, without an event
+   * @param hiveTable The Hive table to generate a command from
+   * @param snowflakeConf The configuration for Snowflake Hive metastore
+   *                      listener
+   * @param hiveTable The Hive configuration
+   * @param canReplace Whether to replace existing resources or not
+   */
+  protected CreateExternalTable(Table hiveTable,
+                                SnowflakeConf snowflakeConf,
+                                Configuration hiveConf,
+                                boolean canReplace)
+  {
+    this.hiveTable = Preconditions.checkNotNull(hiveTable);
+    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
+    this.hiveConf = Preconditions.checkNotNull(hiveConf);
+    this.canReplace = canReplace;
   }
 
   /**
@@ -62,7 +82,9 @@ public class CreateExternalTable implements Command
       hiveTable.getTableName());
 
     // create stage command
-    sb.append("CREATE OR REPLACE STAGE ");
+    sb.append(String.format("CREATE %sSTAGE %s",
+                            (canReplace ? "OR REPLACE " : ""),
+                            (canReplace ? "" : "IF NOT EXISTS ")));
     // we use the table name as the stage name since every external table must
     // be linked to a stage and every table has a unique name
     sb.append(stageName);
@@ -150,13 +172,15 @@ public class CreateExternalTable implements Command
    *           partition_type=user_specified file_format=(TYPE=CSV);
    */
   private String generateCreateTableCommand(String location)
-    throws NotSupportedException
+    throws UnsupportedOperationException
   {
 
     StringBuilder sb = new StringBuilder();
 
     // create table command
-    sb.append("CREATE OR REPLACE EXTERNAL TABLE ");
+    sb.append(String.format("CREATE %sEXTERNAL TABLE %s",
+                            (canReplace ? "OR REPLACE " : ""),
+                            (canReplace ? "" : "IF NOT EXISTS ")));
     sb.append(hiveTable.getTableName());
     sb.append("(");
 
@@ -256,10 +280,12 @@ public class CreateExternalTable implements Command
    * Generates a create stage command followed by a create
    * external table command
    * @return The Snowflake commands generated
-   * @throws NotSupportedException Thrown when the input is invalid
+   * @throws SQLException Thrown when there was an error executing a Snowflake
+   *                      SQL command.
+   * @throws UnsupportedOperationException Thrown when the input is invalid
    */
   public List<String> generateCommands()
-      throws NotSupportedException, SQLException
+      throws SQLException, UnsupportedOperationException
   {
     List<String> queryList = new ArrayList<>();
 
@@ -301,4 +327,6 @@ public class CreateExternalTable implements Command
   private final Configuration hiveConf;
 
   private final SnowflakeConf snowflakeConf;
+
+  private boolean canReplace;
 }

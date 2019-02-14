@@ -55,7 +55,7 @@ public class StageCredentialUtil
    * @param url The URL
    * @param config The Hadoop configuration
    * @return Snippet that represents credentials for the given location
-   * @throws IllegalArgumentException Thrown when the input is invalid
+   * @throws UnsupportedOperationException Thrown when the input is invalid
    */
   public static String generateCredentialsString(
       String url, Configuration config)

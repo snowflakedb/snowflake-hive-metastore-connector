@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * A class for the AddPartition command
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 public class AddPartition implements Command
 {
   /**
-   * Creates a AddPartition command
+   * Creates an AddPartition command
    * @param addPartitionEvent Event to generate a command from
    */
   public AddPartition(AddPartitionEvent addPartitionEvent)
@@ -31,6 +30,19 @@ public class AddPartition implements Command
     Preconditions.checkNotNull(addPartitionEvent);
     this.hiveTable = Preconditions.checkNotNull(addPartitionEvent.getTable());
     this.getPartititonsIterator = addPartitionEvent::getPartitionIterator;
+  }
+
+  /**
+   * Creates an AddPartition command without an event
+   * @param hiveTable The Hive table to generate a command from
+   * @param getPartititonsIterator A method that supplies an iterator for
+   *                               partitions to add
+   */
+  protected AddPartition(Table hiveTable,
+                         Supplier<Iterator<Partition>> getPartititonsIterator)
+  {
+    this.hiveTable = hiveTable;
+    this.getPartititonsIterator = getPartititonsIterator;
   }
 
   /**

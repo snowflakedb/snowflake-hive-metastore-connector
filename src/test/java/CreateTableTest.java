@@ -573,9 +573,9 @@ public class CreateTableTest
     Mockito
         .verify(mockStatement, Mockito.times(1)); // No retries
         String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
-          "(javax.transaction.NotSupportedException): 'Snowflake does not " +
+          "(java.lang.UnsupportedOperationException): 'Snowflake does not " +
           "support the corresponding SerDe: NOT A VALID SERDE'\n" +
-          "STACKTRACE: 'javax.transaction.NotSupportedException: Snowflake does" +
+          "STACKTRACE: 'java.lang.UnsupportedOperationException: Snowflake does" +
           " not support the corresponding SerDe: NOT A VALID SERDE\n";
     assertEquals(1, executeQueryParams.size());
     assertTrue("Invocation does not contain the expected substring",

@@ -5,12 +5,16 @@ package com.snowflake.core.util;
 
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.AddPartition;
+import com.snowflake.core.commands.AlterPartition;
+import com.snowflake.core.commands.AlterTable;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.core.commands.DropExternalTable;
 import com.snowflake.core.commands.DropPartition;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
+import org.apache.hadoop.hive.metastore.events.AlterPartitionEvent;
+import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.apache.hadoop.hive.metastore.events.DropPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
@@ -60,6 +64,16 @@ public class CommandGenerator
     {
       log.info("Generating Drop Partition command");
       command = new DropPartition((DropPartitionEvent)event);
+    }
+    else if (event instanceof AlterTableEvent)
+    {
+      log.info("Generating Alter Table command");
+      command = new AlterTable((AlterTableEvent)event, snowflakeConf);
+    }
+    else if (event instanceof AlterPartitionEvent)
+    {
+      log.info("Generating Alter Partition command");
+      command = new AlterPartition((AlterPartitionEvent)event, snowflakeConf);
     }
 
     return command;
