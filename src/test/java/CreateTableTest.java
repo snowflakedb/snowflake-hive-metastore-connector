@@ -12,6 +12,8 @@ import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -29,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
@@ -420,10 +424,16 @@ public class CreateTableTest
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
     PowerMockito.when(mockRowSet.next()).thenReturn(false);
 
+    List<String> executeQueryParams = new ArrayList<>();
     Statement mockStatement = PowerMockito.mock(Statement.class);
     PowerMockito
         .when(mockStatement.executeQuery(anyString()))
-        .thenReturn(mockRowSet);
+        .thenAnswer((Answer<RowSet>) invocation ->
+        {
+          executeQueryParams.addAll(Arrays.asList(Arrays.copyOf(
+          invocation.getArguments(), invocation.getArguments().length, String[].class)));
+          return mockRowSet;
+        });
 
     Connection mockConnection = PowerMockito.mock(Connection.class);
     PowerMockito
@@ -450,11 +460,15 @@ public class CreateTableTest
                                                       mockConfig);
 
     Mockito
-        .verify(mockStatement, Mockito.times(1)) // No retries
-        .executeQuery(
-            "SELECT NULL /* HIVE METASTORE LISTENER ERROR: " +
-                "'Snowflake does not support the corresponding SerDe: " +
-                "NOT A VALID SERDE' */;");
+        .verify(mockStatement, Mockito.times(1)); // No retries
+        String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
+          "(javax.transaction.NotSupportedException): 'Snowflake does not " +
+          "support the corresponding SerDe: NOT A VALID SERDE'\n" +
+          "STACKTRACE: 'javax.transaction.NotSupportedException: Snowflake does" +
+          " not support the corresponding SerDe: NOT A VALID SERDE\n";
+    assertEquals(1, executeQueryParams.size());
+    assertTrue("Invocation does not contain the expected substring",
+               executeQueryParams.get(0).contains(expectedSubtring));
   }
 
   /**
