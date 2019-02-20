@@ -36,18 +36,14 @@ public class AddPartition implements Command
 
   /**
    * Generates the commands for add partition.
+   * Note: the partition location must be a subpath of the stage location
    * @param partition Partition object to generate a command from
    * @return The equivalent Snowflake command generated, for example:
    *         ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='partcolname')
    *         LOCATION 'sub/path'
    *         /* TABLE LOCATION = 's3n://bucketname/path/to/table' * /;
-   * @throws IllegalArgumentException Thrown when the input is invalid:
-   *  - when the number of partition keys don't match the  number of
-   *    partition values
-   *  - when the partition column is not within the stage location
    */
   private String generateAddPartitionCommand(Partition partition)
-      throws IllegalArgumentException
   {
     List<FieldSchema> partitionKeys = this.hiveTable.getPartitionKeys();
     List<String> partitionValues = partition.getValues();
@@ -91,10 +87,8 @@ public class AddPartition implements Command
   /**
    * Generates the commands for add partition.
    * @return The Snowflake commands generated
-   * @throws IllegalArgumentException Thrown when the input is invalid
    */
   public List<SensitiveString> generateCommands()
-      throws IllegalArgumentException
   {
     List<String> queryList = new ArrayList<>();
 

@@ -33,9 +33,11 @@ public class HiveToSnowflakeType
       .put("TINYINT", "SMALLINT")
       .put("SMALLINT", "SMALLINT")
       .put("INT", "INT")
+      .put("INTEGER", "INT")
       .put("BIGINT", "BIGINT")
       .put("FLOAT", "FLOAT")
       .put("DOUBLE", "DOUBLE")
+      .put("DOUBLE PRECISION", "DOUBLE")
       .put("STRING", "STRING")
       .put("CHAR", "CHAR")
       .put("VARCHAR", "VARCHAR")
@@ -43,6 +45,7 @@ public class HiveToSnowflakeType
       .put("TIMESTAMP", "TIMESTAMP")
       .put("BINARY", "BINARY")
       .put("DECIMAL", "DECIMAL")
+      .put("NUMERIC", "DECIMAL")
       .build();
 
   /**
@@ -72,29 +75,25 @@ public class HiveToSnowflakeType
    * converts a Hive column data type to a Snowflake datatype
    * @param hiveType The data type of the column according to Hive
    * @return The corresponding Snowflake data type
-   * @throws NotSupportedException Thrown when the data type is invalid or
-   *                               unsupported.
    */
   public static String toSnowflakeColumnDataType(String hiveType)
-      throws NotSupportedException
   {
     if (hiveToSnowflakeDataTypeMap.containsKey(hiveType.toUpperCase()))
     {
       return hiveToSnowflakeDataTypeMap.get(hiveType.toUpperCase());
     }
-    throw new NotSupportedException(
-        "Snowflake does not support the corresponding Hive data type: " +
-            hiveType);
+
+    // For Hive types added in the future or complex types (arrays, maps, etc.),
+    // use a variant.
+    return "VARIANT";
   }
 
   /**
    * converts a Hive URL to a Snowflake URL
    * @param hiveUrl The Hive URL
    * @return The URL as understood by Snowflake
-   * @throws NotSupportedException Thrown when the input is invalid
    */
   public static String toSnowflakeURL(String hiveUrl)
-      throws NotSupportedException
   {
     String snowflakeUrl;
     // for now, only handle stages on aws
@@ -105,8 +104,9 @@ public class HiveToSnowflakeType
       snowflakeUrl = hiveUrl.substring(0, 2) + hiveUrl.substring(colonIndex);
       return snowflakeUrl;
     }
-    throw new NotSupportedException(
-        "Snowflake does not support the external location");
+
+    log.error("Unable to convert URL to Snowflake URL. Skipping conversion: " + hiveUrl);
+    return hiveUrl;
   }
 
   /**
