@@ -11,6 +11,7 @@ import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.jdbc.client.SnowflakeClient;
+import javafx.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -23,6 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,25 +52,27 @@ public class CreateExternalTable implements Command
 
   /**
    * Generate the create stage command
-   * @return the Snowflake command generated, for example:
+   * @return a tuple with the Snowflake command generated, and the stage name.
+   *         An example of the command would be:
    *         CREATE OR REPLACE STAGE s1 url='s3://bucketname/path/to/table'
    *         credentials=(AWS_KEY_ID='{accessKeyId}'
    *                      AWS_SECRET_KEY='{awsSecretKey}');
    */
-  private SensitiveString generateCreateStageCommand()
+  private Pair<SensitiveString, String> generateCreateStageCommand()
   {
     StringBuilder sb = new StringBuilder();
     String url = hiveTable.getSd().getLocation();
+    String stageName = String.format("%s_%s",
+      snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(), null),
+      hiveTable.getTableName());
 
     // create stage command
     sb.append("CREATE OR REPLACE STAGE ");
     // we use the table name as the stage name since every external table must
     // be linked to a stage and every table has a unique name
-    sb.append(String.format("%s_%s ",
-                            snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(), null),
-                            hiveTable.getTableName()));
+    sb.append(stageName);
 
-    sb.append("url='");
+    sb.append(" url='");
     sb.append(HiveToSnowflakeType.toSnowflakeURL(url) + "'\n");
 
     SensitiveString credentials = StageCredentialUtil
@@ -76,7 +80,8 @@ public class CreateExternalTable implements Command
     sb.append(credentials);
     sb.append(";");
 
-    return new SensitiveString(sb.toString(), credentials.getSecrets());
+    return new Pair<>(new SensitiveString(sb.toString(), credentials.getSecrets()),
+                      stageName);
   }
 
   /**
@@ -232,7 +237,7 @@ public class CreateExternalTable implements Command
 
     // Find columns called 'property' and 'property_value', and find a row with
     // property as "URL". The property_value will contain the URL
-    HashMap<String, Integer> propertyIndices = new HashMap<>();
+    Map<String, Integer> propertyIndices = new HashMap<>();
     for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
     {
       propertyIndices.put(result.getMetaData().getColumnName(i).toUpperCase(), i);
@@ -301,9 +306,10 @@ public class CreateExternalTable implements Command
     else
     {
       // No stage was specified, create one
-      SensitiveString createStageQuery = generateCreateStageCommand();
-      queryList.add(createStageQuery);
-      location = hiveTable.getTableName(); // Stage and table names are the same
+      Pair<SensitiveString, String> createStageQuery =
+          generateCreateStageCommand();
+      queryList.add(createStageQuery.getKey());
+      location = createStageQuery.getValue();
     }
 
     Preconditions.checkNotNull(location);

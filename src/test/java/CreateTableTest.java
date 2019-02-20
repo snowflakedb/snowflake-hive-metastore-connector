@@ -79,7 +79,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 " +
+                     "partition by (partcol,name)location=@someDB_t1 " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(1).toString());
   }
@@ -121,7 +121,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 partition_type=user_specified " +
+                     "partition by (partcol,name)location=@someDB_t1 partition_type=user_specified " +
                      "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'');",
                  commands.get(1).toString());
   }
@@ -164,7 +164,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 " +
+                     "partition by (partcol,name)location=@someDB_t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
                  commands.get(1).toString());
   }
@@ -206,7 +206,7 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:c2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 " +
+                     "partition by (partcol,name)location=@someDB_t1 " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(1).toString());
   }
@@ -251,7 +251,7 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:col2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 " +
+                     "partition by (partcol,name)location=@someDB_t1 " +
                      "partition_type=user_specified file_format=(TYPE=PARQUET);",
                  commands.get(1).toString());
   }
@@ -437,7 +437,7 @@ public class CreateTableTest
                 "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                 "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                 "partition by (partcol,name)" +
-                "location=@t1 " +
+                "location=@someDB_t1 " +
                 "partition_type=user_specified " +
                 "file_format=(TYPE=CSV);");
   }
@@ -477,7 +477,7 @@ public class CreateTableTest
           "(parse_json(metadata$external_table_partition):PARTCOL::VARIANT)," +
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
-          "partition by (partcol,name)location=@t1 " +
+          "partition by (partcol,name)location=@someDB_t1 " +
           "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(1).toString());
   }
@@ -516,7 +516,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@t1 " +
+                     "partition by (partcol,name)location=@someDB_t1 " +
                      "partition_type=user_specified file_format=(TYPE=CSV);",
                  commands.get(1).toString());
   }

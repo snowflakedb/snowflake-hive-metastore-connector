@@ -37,7 +37,8 @@ public class CommandGenerator
   public static Command getCommand(ListenerEvent event,
                                    SnowflakeConf snowflakeConf)
   {
-    log.info("Get command executed");
+    log.info(String.format("Get command executed (%s)",
+                           event.getClass().getSimpleName()));
     Command command = null;
     if (event instanceof CreateTableEvent)
     {
