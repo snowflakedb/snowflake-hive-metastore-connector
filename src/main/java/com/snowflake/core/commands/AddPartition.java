@@ -4,13 +4,13 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.snowflake.core.util.StringUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +45,7 @@ public class AddPartition implements Command
    */
   private String generateAddPartitionCommand(Partition partition)
   {
-    List<FieldSchema> partitionKeys = this.hiveTable.getPartitionKeys();
+    List<FieldSchema> partitionKeys = hiveTable.getPartitionKeys();
     List<String> partitionValues = partition.getValues();
     Preconditions.checkArgument(
         partitionKeys.size() == partitionValues.size(),
@@ -61,27 +61,15 @@ public class AddPartition implements Command
                                              partitionValues.get(i)));
     }
 
-    // For partitions, Hive requires absolute paths, while Snowflake requires
-    // relative paths.
-    URI tableLocation = URI.create(hiveTable.getSd().getLocation());
-    URI partitionLocation = URI.create(partition.getSd().getLocation());
-    URI relativeLocation = tableLocation.relativize(partitionLocation);
-
-    // If the relativized URI is still absolute, then relativizing failed
-    // because the partition location was invalid.
-    Preconditions.checkArgument(
-        !relativeLocation.isAbsolute(),
-        "The partition location must be a subpath of the stage location.");
-
     return String.format(
         "ALTER EXTERNAL TABLE %1$s " +
         "ADD PARTITION(%2$s) " +
         "LOCATION '%3$s' " +
         "/* TABLE LOCATION = '%4$s' */;",
-        this.hiveTable.getTableName(),
+        hiveTable.getTableName(),
         String.join(",", partitionDefinitions),
-        relativeLocation,
-        tableLocation);
+        StringUtil.relativizePartitionURI(hiveTable, partition),
+        hiveTable.getSd().getLocation());
   }
 
   /**
