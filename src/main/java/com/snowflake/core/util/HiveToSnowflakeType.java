@@ -83,8 +83,8 @@ public class HiveToSnowflakeType
       return hiveToSnowflakeDataTypeMap.get(hiveType.toUpperCase());
     }
 
-    // For unknown types or types that do not have a Snowflake equivalent,
-    // fallback to variant
+    // For Hive types added in the future or complex types (arrays, maps, etc.),
+    // use a variant.
     return "VARIANT";
   }
 

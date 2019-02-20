@@ -6,7 +6,7 @@ package com.snowflake.core.util;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 
-import javax.transaction.NotSupportedException;
+import java.lang.UnsupportedOperationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -95,8 +95,8 @@ public class StageCredentialUtil
           return new SensitiveString(credentialsFormat, secrets);
 
         default:
-          throw new NotSupportedException("Unsupported stage type: " +
-                                          stageType.name());
+          throw new UnsupportedOperationException("Unsupported stage type: " +
+                                                  stageType.name());
       }
     }
     catch (Exception e)
