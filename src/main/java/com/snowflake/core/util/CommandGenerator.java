@@ -52,7 +52,7 @@ public class CommandGenerator
     }
     else if (event instanceof DropPartitionEvent)
     {
-      log.info("Generating Add Partition command");
+      log.info("Generating Drop Partition command");
       command = new DropPartition((DropPartitionEvent)event);
     }
 

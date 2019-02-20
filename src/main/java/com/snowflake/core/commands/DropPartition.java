@@ -4,12 +4,12 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.snowflake.core.util.StringUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropPartitionEvent;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -43,26 +43,14 @@ public class DropPartition implements Command
    */
   private String generateDropPartitionCommand(Partition partition)
   {
-    // For partitions, Hive requires absolute paths, while Snowflake requires
-    // relative paths.
-    URI tableLocation = URI.create(hiveTable.getSd().getLocation());
-    URI partitionLocation = URI.create(partition.getSd().getLocation());
-    URI relativeLocation = tableLocation.relativize(partitionLocation);
-
-    // If the relativized URI is still absolute, then relativizing failed
-    // because the partition location was invalid.
-    Preconditions.checkArgument(
-        !relativeLocation.isAbsolute(),
-        "The partition location must be a subpath of the stage location.");
-
     return String.format(
         "ALTER EXTERNAL TABLE %1$s " +
             "DROP PARTITION " +
             "LOCATION '%2$s' " +
             "/* TABLE LOCATION = '%3$s' */;",
         this.hiveTable.getTableName(),
-        relativeLocation,
-        tableLocation);
+        StringUtil.relativizePartitionURI(hiveTable, partition),
+        hiveTable.getSd().getLocation());
   }
 
   /**

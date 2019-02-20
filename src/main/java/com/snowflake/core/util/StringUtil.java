@@ -1,11 +1,15 @@
 package com.snowflake.core.util;
 
+import com.google.common.base.Preconditions;
 import javafx.util.Pair;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.text.StringSubstitutor;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.Table;
 
 /**
  * A utility class for formatting strings
@@ -82,5 +86,38 @@ public class StringUtil
     {
       return this.getValue();
     }
+  }
+
+  /**
+   * Helper method for getting a relative path between a Hive table and
+   * Hive partition. The partition location must be a subpath of the table
+   * location.
+   * @param hiveTable The table to get a relative path from.
+   * @param hivePartition The partition with a location relative to the table
+   * @return The relative path between the table and partition.
+   * @throws IllegalArgumentException
+   */
+  public static String relativizePartitionURI(Table hiveTable,
+                                              Partition hivePartition)
+      throws IllegalArgumentException
+  {
+    // For partitions, Hive requires absolute paths, while Snowflake requires
+    // relative paths.
+    URI tableLocation = URI.create(hiveTable.getSd().getLocation());
+    URI partitionLocation = URI.create(hivePartition.getSd().getLocation());
+    URI relativeLocation = tableLocation.relativize(partitionLocation);
+
+    // If the relativized URI is still absolute, then relativizing failed
+    // because the partition location was invalid.
+    if (relativeLocation.isAbsolute())
+    {
+      throw new IllegalArgumentException(String.format(
+          "The partition location must be a subpath of the table location. " +
+              "Table location: '%s' Partition location: '%s'",
+          tableLocation,
+          partitionLocation));
+    }
+
+    return relativeLocation.toString();
   }
 }

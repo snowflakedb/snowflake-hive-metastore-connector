@@ -3,14 +3,19 @@
  */
 package com.snowflake.hive.listener;
 
+import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
+import java.util.Iterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.apache.hadoop.hive.metastore.events.DropPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
+import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +45,15 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   @Override
   public void onCreateTable(CreateTableEvent tableEvent)
   {
-    log.info("SnowflakeHiveListener: CreateTableEvent received");
+    logTableEvent(tableEvent, tableEvent.getTable());
     if (tableEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
                                                         snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for CreateTableEvent");
     }
   }
 
@@ -55,11 +64,15 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   @Override
   public void onDropTable(DropTableEvent tableEvent)
   {
-    log.info("SnowflakeHiveListener: DropTableEvent received");
+    logTableEvent(tableEvent, tableEvent.getTable());
     if (tableEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
                                                         snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for DropTableEvent");
     }
   }
 
@@ -70,11 +83,16 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   @Override
   public void onAddPartition(AddPartitionEvent partitionEvent)
   {
-    log.info("SnowflakeHiveListener: AddPartitionEvent received");
+    logPartitionsEvent(partitionEvent, partitionEvent.getTable(),
+                       partitionEvent.getPartitionIterator());
     if (partitionEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
                                                         snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for AddPartitionEvent");
     }
   }
 
@@ -85,11 +103,63 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   @Override
   public void onDropPartition(DropPartitionEvent partitionEvent)
   {
-    log.info("SnowflakeHiveListener: DropPartitionEvent received");
+    logPartitionsEvent(partitionEvent, partitionEvent.getTable(),
+                       partitionEvent.getPartitionIterator());
     if (partitionEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
                                                         snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for DropPartitionEvent");
+    }
+  }
+
+  /**
+   * Helper method for logging that an event occurred for a Hive table
+   * @param event The event
+   * @param hiveTable The Hive table associated with the event
+   */
+  private static void logTableEvent(ListenerEvent event, Table hiveTable)
+  {
+    Preconditions.checkNotNull(hiveTable);
+    String tableName = Preconditions.checkNotNull(hiveTable.getTableName());
+    log.info(String.format("SnowflakeHiveListener: %s received for table '%s'",
+                           event.getClass().getSimpleName(),
+                           tableName));
+  }
+
+  /**
+   * Helper method for logging that an event occurred for a Hive table and some
+   * partitions.
+   * @param event The event
+   * @param hiveTable The Hive table associated with the event
+   * @param partitionIterator An iterator associated with the Hive table
+   */
+  private static void logPartitionsEvent(ListenerEvent event, Table hiveTable,
+                                         Iterator<Partition> partitionIterator)
+  {
+    Preconditions.checkNotNull(hiveTable);
+    String tableName = Preconditions.checkNotNull(hiveTable.getTableName());
+    Preconditions.checkNotNull(partitionIterator);
+    if (partitionIterator.hasNext())
+    {
+      // The number of partitions might be large- log each partition separately
+      // to be safe.
+      partitionIterator.forEachRemaining((partition) ->
+        log.info(String.format("SnowflakeHiveListener: %s received for table " +
+                                   "'%s' and partition with values (%s)",
+                               event.getClass().getSimpleName(),
+                               tableName,
+                               String.join(", ", partition.getValues()))));
+    }
+    else
+    {
+      log.info(String.format("SnowflakeHiveListener: %s received for " +
+                                 "table '%s' and no partitions",
+                             event.getClass().getSimpleName(),
+                             tableName));
     }
   }
 }
