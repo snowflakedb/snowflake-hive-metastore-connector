@@ -51,19 +51,17 @@ public class CreateExternalTable implements Command
   /**
    * Generate the create stage command
    * @return the Snowflake command generated, for example:
-   *         CREATE STAGE s1 url='s3://bucketname/path/to/table'
+   *         CREATE OR REPLACE STAGE s1 url='s3://bucketname/path/to/table'
    *         credentials=(AWS_KEY_ID='{accessKeyId}'
    *                      AWS_SECRET_KEY='{awsSecretKey}');
-   * @throws Exception Thrown when the input is invalid
    */
   private SensitiveString generateCreateStageCommand()
-  throws NotSupportedException
   {
     StringBuilder sb = new StringBuilder();
     String url = hiveTable.getSd().getLocation();
 
     // create stage command
-    sb.append("CREATE STAGE ");
+    sb.append("CREATE OR REPLACE STAGE ");
     // we use the table name as the stage name since every external table must
     // be linked to a stage and every table has a unique name
     sb.append(String.format("%s_%s ",
@@ -88,12 +86,9 @@ public class CreateExternalTable implements Command
    * @param snowflakeFileFormatType Snowflake's file format type
    * @return Snippet of a command that represents a column, for example:
    *         col1 INT as (VALUE:c1::INT)
-   * @throws NotSupportedException Thrown when the column type is invalid or
-   *                               unsupported.
    */
   private String generateColumnStr(FieldSchema columnSchema, int columnPosition,
                                    String snowflakeFileFormatType)
-    throws NotSupportedException
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -127,11 +122,8 @@ public class CreateExternalTable implements Command
    * @return Snippet of a command that represents a partition column, e.g.
    *         partcol INT as
    *            (parse_json(metadata$external_table_partition):PARTCOL::INT)
-   * @throws NotSupportedException Thrown when the column type is invalid or
-   *                               unsupported.
    */
   private String generatePartitionColumnStr(FieldSchema columnSchema)
-    throws NotSupportedException
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -150,7 +142,7 @@ public class CreateExternalTable implements Command
   /**
    * Generate the create table command
    * @return The equivalent Snowflake command generated, for example:
-   *         CREATE EXTERNAL TABLE t1(
+   *         CREATE OR REPLACE EXTERNAL TABLE t1(
    *             partcol INT as
    *               (parse_json(metadata$external_table_partition):PARTCOL::INT),
    *             name STRING as
@@ -159,13 +151,13 @@ public class CreateExternalTable implements Command
    *           partition_type=user_specified file_format=(TYPE=CSV);
    */
   private String generateCreateTableCommand(String location)
-  throws NotSupportedException
+    throws NotSupportedException
   {
 
     StringBuilder sb = new StringBuilder();
 
     // create table command
-    sb.append("CREATE EXTERNAL TABLE ");
+    sb.append("CREATE OR REPLACE EXTERNAL TABLE ");
     sb.append(hiveTable.getTableName());
     sb.append("(");
 

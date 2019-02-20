@@ -47,12 +47,12 @@ public class DropTableTest
     List<SensitiveString> commands = dropExternalTable.generateCommands();
     assertEquals("generated drop table command does not match " +
         "expected drop table command",
-        "DROP EXTERNAL TABLE t1;",
+        "DROP EXTERNAL TABLE IF EXISTS t1;",
         commands.get(0).toString());
 
     assertEquals("generated drop stage command does not match " +
         "expected drop stage command",
-        "DROP STAGE t1;",
+        "DROP STAGE IF EXISTS t1;",
         commands.get(1).toString());
   }
 }
