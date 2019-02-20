@@ -27,14 +27,14 @@ public class DropExternalTable implements Command
   /**
    * Generates the command for drop external table
    * @return The Snowflake command generated, for example:
-   *         DROP EXTERNAL TABLE T1;
+   *         DROP EXTERNAL TABLE IF EXISTS T1;
    */
   private String generateDropTableCommand()
   {
     StringBuilder sb = new StringBuilder();
 
     // drop table command
-    sb.append("DROP EXTERNAL TABLE ");
+    sb.append("DROP EXTERNAL TABLE IF EXISTS ");
     sb.append(hiveTable.getTableName());
     sb.append(";");
 
@@ -44,14 +44,14 @@ public class DropExternalTable implements Command
   /**
    * Generates the command for drop stage
    * @return The Snowflake command generated, for example:
-   *         DROP STAGE S1;
+   *         DROP STAGE IF EXISTS S1;
    */
   private String generateDropStageCommand()
   {
     StringBuilder sb = new StringBuilder();
 
     // drop stage command
-    sb.append("DROP STAGE ");
+    sb.append("DROP STAGE IF EXISTS ");
     sb.append(hiveTable.getTableName());
     sb.append(";");
 

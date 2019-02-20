@@ -5,6 +5,7 @@ package com.snowflake.jdbc.client;
 
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
+import com.snowflake.core.commands.LogCommand;
 import com.snowflake.core.util.CommandGenerator;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
@@ -61,7 +62,9 @@ public class SnowflakeClient
     catch (Exception e)
     {
       log.error("Could not generate the Snowflake commands: " + e.getMessage());
-      return;
+
+      // Log a message to Snowflake with the error instead
+      commandList = new LogCommand(e).generateCommands();
     }
 
     // Get connection
@@ -71,8 +74,8 @@ public class SnowflakeClient
     {
       commandList.forEach(commandStr ->
       {
-        try (Statement statement = retry(
-            connection::createStatement, snowflakeConf))
+        try (Statement statement =
+                retry(connection::createStatement, snowflakeConf))
         {
           log.info("Executing command: " + commandStr);
           ResultSet resultSet = retry(() -> statement.executeQuery(
