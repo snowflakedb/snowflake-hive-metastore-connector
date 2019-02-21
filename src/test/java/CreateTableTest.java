@@ -659,21 +659,16 @@ public class CreateTableTest
     ResultSetMetaData mockMetadata = PowerMockito.mock(ResultSetMetaData.class);
     PowerMockito.when(mockMetadata.getColumnCount()).thenReturn(3);
     PowerMockito.when(mockMetadata.getColumnName(1)).thenReturn("something");
-    PowerMockito.when(mockMetadata.getColumnName(2)).thenReturn("property");
-    PowerMockito.when(mockMetadata.getColumnName(3)).thenReturn("property_value");
+    PowerMockito.when(mockMetadata.getColumnName(2)).thenReturn("url");
+    PowerMockito.when(mockMetadata.getColumnName(3)).thenReturn("something2");
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
     PowerMockito
         .when(mockRowSet.next())
         .thenReturn(true)
-        .thenReturn(true)
         .thenReturn(false);
     PowerMockito
         .when(mockRowSet.getString(2))
-        .thenReturn("something")
-        .thenReturn("URL");
-    PowerMockito
-        .when(mockRowSet.getString(3))
-        .thenReturn("[\"" + stageLocation + "\", \"\"other location\"]");
+        .thenReturn(stageLocation);
     PowerMockito.when(mockRowSet.getMetaData()).thenReturn(mockMetadata);
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement

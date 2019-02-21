@@ -232,42 +232,30 @@ public class CreateExternalTable implements Command
   private String getStageLocationFromStageName(String stageName)
       throws SQLException
   {
-    // Go to Snowflake to fetch the stage location
+    // Go to Snowflake to fetch the stage location. Note: Case-insensitive
     ResultSet result = SnowflakeClient.executeStatement(
-        String.format("DESC STAGE %s;", stageName), snowflakeConf);
+        String.format("SHOW STAGES LIKE '%s';", stageName), snowflakeConf);
 
-    // Find columns called 'property' and 'property_value', and find a row with
-    // property as "URL". The property_value will contain the URL
-    Map<String, Integer> propertyIndices = new HashMap<>();
+    // Find a column called 'url', which contains the stage location. There
+    // should be exactly one row.
+    int urlPropertyIndex = -1;
     for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
     {
-      propertyIndices.put(result.getMetaData().getColumnName(i).toUpperCase(), i);
-    }
-    Preconditions.checkState(propertyIndices.containsKey("PROPERTY") &&
-                                 propertyIndices.containsKey("PROPERTY_VALUE"),
-                             "Could not find URL property for stage: ", stageName);
-
-    String url = null;
-    while (result.next())
-    {
-      String property = result.getString(propertyIndices.get("PROPERTY"));
-      if (property.equalsIgnoreCase("URL"))
+      if (result.getMetaData().getColumnName(i).toUpperCase().equals("URL"))
       {
-        url = result.getString(propertyIndices.get("PROPERTY_VALUE"));
+        urlPropertyIndex = i;
         break;
       }
     }
-    Preconditions.checkNotNull(url, "Could not find URL for stage: ", stageName);
+    Preconditions.checkState(urlPropertyIndex != -1,
+                             "Could not find URL property for stage: ", stageName);
 
-    // The URL may be a list in the form '["url1", ...]'. Get the first URL
-    // if it is in this form.
-    Matcher matcher = Pattern.compile("\\[\"([^\"]+)\"").matcher(url);
-    if (matcher.find())
-    {
-      url = matcher.group(1);
-    }
+    // Call result.next() once to get to the first row.
+    Preconditions.checkState(result.next(), "Could not find stage: ", stageName);
 
-    return url;
+    return Preconditions.checkNotNull(
+        result.getString(urlPropertyIndex),
+        "Could not find URL for stage: ", stageName);
   }
 
   /**
