@@ -48,7 +48,7 @@ public class SnowflakeClient
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
-    Command command = CommandGenerator.getCommand(event);
+    Command command = CommandGenerator.getCommand(event, snowflakeConf);
 
     // Generate the string queries for the command
     // Some Hive commands require more than one statement in Snowflake
@@ -112,6 +112,29 @@ public class SnowflakeClient
       log.error("There was an error creating the query: " +
                 e.getMessage());
       return;
+    }
+  }
+
+  public static ResultSet executeStatement(String commandStr,
+                                           SnowflakeConf snowflakeConf)
+      throws SQLException
+  {
+    try (Connection connection = retry(() -> getConnection(snowflakeConf),
+                                       snowflakeConf);
+         Statement statement = retry(connection::createStatement,
+                                     snowflakeConf))
+    {
+      log.info("Executing command: " + commandStr);
+      ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
+                                  snowflakeConf);
+      log.info("Command successfully executed");
+      return resultSet;
+    }
+    catch (SQLException e)
+    {
+      log.info("There was an error executing this statement or forming a " +
+                   "connection: " + e.getMessage());
+      throw e;
     }
   }
 

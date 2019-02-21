@@ -3,6 +3,7 @@
  */
 package com.snowflake.core.util;
 
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.AddPartition;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.CreateExternalTable;
@@ -29,16 +30,21 @@ public class CommandGenerator
    * Creates a command based on the arguments
    * Defers the actual creation to subclasses
    * @param event - the event passed from the hive metastore
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    * @return a command corresponding to the command to be executed
    */
-  public static Command getCommand(ListenerEvent event)
+  public static Command getCommand(ListenerEvent event,
+                                   SnowflakeConf snowflakeConf)
   {
-    log.info("Get command executed");
+    log.info(String.format("Get command executed (%s)",
+                           event.getClass().getSimpleName()));
     Command command = null;
     if (event instanceof CreateTableEvent)
     {
       log.info("Generating Create Table command");
-      command = new CreateExternalTable((CreateTableEvent)event);
+      command = new CreateExternalTable((CreateTableEvent)event,
+                                        snowflakeConf);
     }
     else if (event instanceof DropTableEvent)
     {

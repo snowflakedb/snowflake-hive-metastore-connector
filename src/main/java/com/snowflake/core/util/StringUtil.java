@@ -1,11 +1,11 @@
 package com.snowflake.core.util;
 
-import com.google.common.base.Preconditions;
 import javafx.util.Pair;
 
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -103,21 +103,36 @@ public class StringUtil
   {
     // For partitions, Hive requires absolute paths, while Snowflake requires
     // relative paths.
-    URI tableLocation = URI.create(hiveTable.getSd().getLocation());
-    URI partitionLocation = URI.create(hivePartition.getSd().getLocation());
-    URI relativeLocation = tableLocation.relativize(partitionLocation);
+    Optional<String> relativePath = relativizeURI(
+      hiveTable.getSd().getLocation(),
+      hivePartition.getSd().getLocation());
 
-    // If the relativized URI is still absolute, then relativizing failed
-    // because the partition location was invalid.
-    if (relativeLocation.isAbsolute())
-    {
-      throw new IllegalArgumentException(String.format(
+    return relativePath.orElseThrow(
+        () -> new IllegalArgumentException(String.format(
           "The partition location must be a subpath of the table location. " +
               "Table location: '%s' Partition location: '%s'",
-          tableLocation,
-          partitionLocation));
+          hiveTable.getSd().getLocation(),
+          hivePartition.getSd().getLocation())));
+  }
+
+  /**
+   * Helper method for getting a relative path between two URIs.
+   * @param base The URI that the output path will be relative to
+   * @param extended The URI that contains the relative path
+   * @return The relative path if possible.
+   */
+  public static Optional<String> relativizeURI(String base, String extended)
+  {
+    URI baseUri = URI.create(base);
+    URI extendedUri = URI.create(extended);
+    URI relativeUri = baseUri.relativize(extendedUri);
+
+    // If the relativized URI is still absolute, then relativizing failed
+    if (relativeUri.isAbsolute())
+    {
+      return Optional.empty();
     }
 
-    return relativeLocation.toString();
+    return Optional.of(relativeUri.toString());
   }
 }
