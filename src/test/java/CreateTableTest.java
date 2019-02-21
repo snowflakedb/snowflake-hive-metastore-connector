@@ -367,8 +367,7 @@ public class CreateTableTest
     {
       assertEquals("The table location must be a subpath of the stage location. " +
                        "tableLocation: 's3://bucketname/path/to/table', " +
-                       "stageLocation: 's3://bucketname2', " +
-                       "relativePath: 's3://bucketname/path/to/table'",
+                       "stageLocation: 's3://bucketname2'",
                    ex.getMessage());
       threwCorrectException = true;
     }

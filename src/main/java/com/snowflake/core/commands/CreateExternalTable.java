@@ -9,6 +9,7 @@ import com.snowflake.conf.SnowflakeConf.ConfVars;
 import com.snowflake.core.util.HiveToSnowflakeType;
 import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
+import com.snowflake.core.util.StringUtil;
 import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import javafx.util.Pair;
@@ -287,19 +288,16 @@ public class CreateExternalTable implements Command
     if (stage != null)
     {
       // A stage was specified, use it
-      URI tableLocation = URI.create(HiveToSnowflakeType.toSnowflakeURL(
-          hiveTable.getSd().getLocation()));
-      URI stageLocation = URI.create(getStageLocationFromStageName(stage));
-      URI relativeLocation = stageLocation.relativize(tableLocation);
-
-      // If the relativized URI is still absolute, then relativizing failed
-      // because the partition location was invalid.
-      Preconditions.checkArgument(
-          !relativeLocation.isAbsolute(),
-          String.format("The table location must be a subpath of the stage " +
-                        "location. tableLocation: '%s', stageLocation: '%s', " +
-                        "relativePath: '%s'", tableLocation,
-                        stageLocation, relativeLocation));
+      String tableLocation = HiveToSnowflakeType.toSnowflakeURL(
+          hiveTable.getSd().getLocation());
+      String stageLocation = getStageLocationFromStageName(stage);
+      String relativeLocation =
+          StringUtil.relativizeURI(stageLocation, tableLocation)
+          .orElseThrow(() -> new IllegalArgumentException(String.format(
+              "The table location must be a subpath of the stage " +
+                  "location. tableLocation: '%s', stageLocation: '%s'",
+              tableLocation,
+              stageLocation)));
 
       location = stage + "/" + relativeLocation;
     }
