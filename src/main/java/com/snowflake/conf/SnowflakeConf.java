@@ -37,13 +37,21 @@ public class SnowflakeConf extends Configuration
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
       "The Snowflake connection string."),
-    SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES("snowflake.hivemetastorelistener.stage", "stage",
+    SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES(
+      "snowflake.hivemetastorelistener.stage", "stage",
       "The stage to use when creating external tables with Snowflake"),
-    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT("snowflake.hivemetastorelistener.retry.count", "retryCount",
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT(
+      "snowflake.hivemetastorelistener.retry.count", "retryCount",
       "The number of retries when connecting with Snowflake"),
-    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS("snowflake.hivemetastorelistener.retry.timeout",
-      "retryTimeout", "The time between retries when connecting with " +
-      "Snowflake, in milliseconds");
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS(
+      "snowflake.hivemetastorelistener.retry.timeout",
+      "retryTimeout",
+      "The time between retries when connecting with Snowflake, in milliseconds"),
+    SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF(
+      "snowflake.hivemetastorelistener.enable_creds_from_conf",
+      "creds_from_conf",
+      "Whether the Hive metastore listener should read credentials from Hive " +
+          "configurations.");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

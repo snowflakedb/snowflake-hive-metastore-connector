@@ -283,9 +283,11 @@ public class CreateExternalTable implements Command
    * @throws SQLException Thrown when there was an error executing a Snowflake
    *                      SQL command.
    * @throws UnsupportedOperationException Thrown when the input is invalid
+   * @throws IllegalArgumentException Thrown when arguments are illegal
    */
   public List<String> generateCommands()
-      throws SQLException, UnsupportedOperationException
+      throws SQLException, UnsupportedOperationException,
+             IllegalArgumentException
   {
     List<String> queryList = new ArrayList<>();
 
@@ -308,12 +310,20 @@ public class CreateExternalTable implements Command
 
       location = stage + "/" + relativeLocation;
     }
-    else
+    else if (snowflakeConf.getBoolean(
+        ConfVars.SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF.getVarname(), false))
     {
       // No stage was specified, create one
       Pair<String, String> createStageQuery = generateCreateStageCommand();
       queryList.add(createStageQuery.getKey());
       location = createStageQuery.getValue();
+    }
+    else
+    {
+      throw new IllegalArgumentException(
+          "Configuration does not specify a stage to use. Add a " +
+              "configuration for snowflake.hivemetastorelistener.stage to " +
+              "specify the stage.");
     }
 
     Preconditions.checkNotNull(location);

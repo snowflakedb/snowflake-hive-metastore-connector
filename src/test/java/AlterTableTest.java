@@ -39,7 +39,7 @@ public class AlterTableTest
   @Test
   public void basicTouchTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     Configuration mockConfig = PowerMockito.mock(Configuration.class);
     PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
@@ -52,7 +52,7 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, initializeMockConfig());
+    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = alterTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -72,48 +72,5 @@ public class AlterTableTest
                      "location=@someDB_t1 partition_type=user_specified " +
                      "file_format=(TYPE=CSV);",
                  commands.get(1));
-  }
-
-  /**
-   * Helper method to initialize a base Table object for tests
-   */
-  private Table initializeMockTable()
-  {
-    Table table = new Table();
-
-    table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(
-        new FieldSchema("partcol", "int", null),
-        new FieldSchema("name", "string", null)));
-    table.setSd(new StorageDescriptor());
-    table.getSd().setCols(new ArrayList<>());
-    table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
-    table.getSd().setLocation("s3n://bucketname/path/to/table");
-    table.getSd().setSerdeInfo(new SerDeInfo());
-    table.getSd().getSerdeInfo().setSerializationLib(
-        "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe");
-    table.getSd().getSerdeInfo().setParameters(new HashMap<>());
-    table.setParameters(new HashMap<>());
-
-    return table;
-  }
-
-  /**
-   * Helper method to initialize the SnowflakeConf configuration class,
-   * which is commonly used for tests in this class.
-   */
-  private SnowflakeConf initializeMockConfig()
-  {
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.get("snowflake.jdbc.db", null))
-        .thenReturn("someDB");
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
-    return mockConfig;
   }
 }

@@ -4,8 +4,6 @@ import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.SerDeInfo;
-import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.junit.Test;
@@ -20,7 +18,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import javax.sql.RowSet;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -33,6 +30,7 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
@@ -54,13 +52,13 @@ public class CreateTableTest
   @Test
   public void basicCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -90,7 +88,7 @@ public class CreateTableTest
   @Test
   public void csvCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     Map<String, String> serDeParams = new HashMap<>();
     serDeParams.put("field.delim", "','");
@@ -99,10 +97,10 @@ public class CreateTableTest
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -132,7 +130,7 @@ public class CreateTableTest
   @Test
   public void parquetCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setInputFormat("org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat");
     table.getSd().getSerdeInfo().setSerializationLib(
@@ -142,10 +140,10 @@ public class CreateTableTest
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -175,17 +173,17 @@ public class CreateTableTest
   @Test
   public void multiColumnCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
         new FieldSchema("col2", "string", null)));
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -217,7 +215,7 @@ public class CreateTableTest
   @Test
   public void parquetMultiColumnCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
@@ -227,10 +225,10 @@ public class CreateTableTest
         "parquet.hive.serde.ParquetHiveSerDe");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -262,19 +260,19 @@ public class CreateTableTest
   @Test
   public void existingStageCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname/path");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
@@ -300,19 +298,19 @@ public class CreateTableTest
   @Test
   public void existingStageSamePathCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
@@ -338,19 +336,19 @@ public class CreateTableTest
   @Test
   public void existingStageInvalidCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname2");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname2");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
@@ -378,10 +376,10 @@ public class CreateTableTest
   @Test
   public void retryCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     // Mock JDBC connection to be unreliable during query execution
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
@@ -408,7 +406,7 @@ public class CreateTableTest
 
     // Mock configuration to have a wait time of zero (so tests are quick)
     SnowflakeConf
-        mockConfig = initializeMockConfig();
+        mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -447,15 +445,15 @@ public class CreateTableTest
   @Test
   public void columnErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getPartitionKeys().forEach(
         fieldSchema -> fieldSchema.setType("NOT A VALID TYPE"));
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -487,14 +485,14 @@ public class CreateTableTest
   @Test
   public void credentialsErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getSd().setLocation("INVALID PROTOCOL://bucketname/path/to/table");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
@@ -518,18 +516,62 @@ public class CreateTableTest
   }
 
   /**
+   * A negative test for generating a create table command with no stage
+   * specified and disabling reading from Hive conf. The user's configuration
+   * should not be read if this flag is not enabled.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void stageErrorCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    HiveMetaStore.HMSHandler hmsHandler = TestUtil.initializeMockHMSHandler();
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, hmsHandler);
+
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable_creds_from_conf", false))
+        .thenReturn(false);
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    try
+    {
+      createExternalTable.generateCommands();
+      fail("Command generation did not fail when it should have.");
+    }
+    catch (IllegalArgumentException ex)
+    {
+      assertEquals("Configuration does not specify a stage to use. Add a " +
+                       "configuration for snowflake.hivemetastorelistener.stage to specify the stage.",
+                   ex.getMessage());
+    }
+
+    // No attempts to read from config
+    Configuration mockHiveConfig = hmsHandler.getConf();
+    Mockito
+        .verify(mockHiveConfig, Mockito.times(0))
+        .get(any());
+    Mockito
+        .verify(mockHiveConfig, Mockito.times(0));
+  }
+
+  /**
    * Negative test for the error handling of command generation itself
    * @throws Exception
    */
   @Test
   public void logErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getSd().setInputFormat("NOT A VALID FORMAT");
     table.getSd().getSerdeInfo().setSerializationLib("NOT A VALID SERDE");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     // Mock JDBC connection to be unreliable during query execution
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
@@ -558,13 +600,7 @@ public class CreateTableTest
         .thenReturn(mockConnection);
 
     // Mock configuration to have a wait time of zero (so tests are quick)
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -572,7 +608,7 @@ public class CreateTableTest
 
     Mockito
         .verify(mockStatement, Mockito.times(1)); // No retries
-        String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
+    String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
           "(java.lang.UnsupportedOperationException): 'Snowflake does not " +
           "support the corresponding SerDe: NOT A VALID SERDE'\n" +
           "STACKTRACE: 'java.lang.UnsupportedOperationException: Snowflake does" +
@@ -580,97 +616,5 @@ public class CreateTableTest
     assertEquals(1, executeQueryParams.size());
     assertTrue("Invocation does not contain the expected substring",
                executeQueryParams.get(0).contains(expectedSubtring));
-  }
-
-  /**
-   * Helper class to initialize the Hive metastore handler, which is commonly
-   * used for tests in this class.
-   */
-  private HiveMetaStore.HMSHandler initializeMockHMSHandler()
-  {
-    // Mock the HMSHandler and configurations
-    Configuration mockConfig = PowerMockito.mock(Configuration.class);
-    HiveMetaStore.HMSHandler mockHandler =
-        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
-    PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
-        .thenReturn("accessKeyId");
-    PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
-        .thenReturn("awsSecretKey");
-    PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
-
-    return mockHandler;
-  }
-
-  /**
-   * Helper method to initialize the SnowflakeConf configuration class,
-   * which is commonly used for tests in this class.
-   */
-  private SnowflakeConf initializeMockConfig()
-  {
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.get("snowflake.jdbc.db", null))
-        .thenReturn("someDB");
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
-    return mockConfig;
-  }
-
-  /**
-   * Helper method to initialize a base Table object for tests
-   */
-  private Table initializeMockTable()
-  {
-    Table table = new Table();
-
-    table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(
-        new FieldSchema("partcol", "int", null),
-        new FieldSchema("name", "string", null)));
-    table.setSd(new StorageDescriptor());
-    table.getSd().setCols(new ArrayList<>());
-    table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
-    table.getSd().setLocation("s3n://bucketname/path/to/table");
-    table.getSd().setSerdeInfo(new SerDeInfo());
-    table.getSd().getSerdeInfo().setSerializationLib(
-        "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe");
-    table.getSd().getSerdeInfo().setParameters(new HashMap<>());
-    table.setParameters(new HashMap<>());
-
-    return table;
-  }
-
-  /**
-   * Helper method to mock the Snowflake client to return the provided stage
-   * location when querying Snowflake with a stage
-   * @param stageLocation The location that should be returned by the Snowflake
-   *                      client.
-   */
-  private void mockSnowflakeStageWithLocation(String stageLocation)
-  throws Exception
-  {
-    ResultSetMetaData mockMetadata = PowerMockito.mock(ResultSetMetaData.class);
-    PowerMockito.when(mockMetadata.getColumnCount()).thenReturn(3);
-    PowerMockito.when(mockMetadata.getColumnName(1)).thenReturn("something");
-    PowerMockito.when(mockMetadata.getColumnName(2)).thenReturn("url");
-    PowerMockito.when(mockMetadata.getColumnName(3)).thenReturn("something2");
-    RowSet mockRowSet = PowerMockito.mock(RowSet.class);
-    PowerMockito
-        .when(mockRowSet.next())
-        .thenReturn(true)
-        .thenReturn(false);
-    PowerMockito
-        .when(mockRowSet.getString(2))
-        .thenReturn(stageLocation);
-    PowerMockito.when(mockRowSet.getMetaData()).thenReturn(mockMetadata);
-    PowerMockito.mockStatic(SnowflakeClient.class);
-    PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
-        .when(SnowflakeClient.executeStatement(anyString(),
-                                               any(SnowflakeConf.class)))
-        .thenReturn(mockRowSet);
   }
 }
