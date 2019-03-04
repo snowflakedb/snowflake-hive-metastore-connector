@@ -4,6 +4,7 @@
 package com.snowflake.hive.listener;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import java.util.Iterator;
@@ -120,6 +121,46 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   }
 
   /**
+   * The listener for the alter table command
+   * @param tableEvent An event that was listened for
+   */
+  @Override
+  public void onAlterTable(AlterTableEvent tableEvent) throws MetaException
+  {
+    logTableEvent(tableEvent, tableEvent.getNewTable());
+    if (tableEvent.getStatus())
+    {
+      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
+                                                        snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for DropPartitionEvent");
+    }
+  }
+
+  /**
+   * The listener for the alter partition command
+   * @param partitionEvent An event that was listened for
+   */
+  @Override
+  public void onAlterPartition(AlterPartitionEvent partitionEvent) throws MetaException
+  {
+    logPartitionsEvent(partitionEvent, partitionEvent.getTable(),
+                       ImmutableList.<Partition>builder().add(
+                           partitionEvent.getNewPartition()).build().iterator());
+    if (partitionEvent.getStatus())
+    {
+      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
+                                                        snowflakeConf);
+    }
+    else
+    {
+      log.info("SnowflakeHiveListener: Nothing to do for DropPartitionEvent");
+    }
+  }
+
+  /**
    * Helper method for logging that an event occurred for a Hive table
    * @param event The event
    * @param hiveTable The Hive table associated with the event
@@ -163,28 +204,6 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
                                  "table '%s' and no partitions",
                              event.getClass().getSimpleName(),
                              tableName));
-    }
-  }
-
-  @Override
-  public void onAlterTable(AlterTableEvent tableEvent) throws MetaException
-  {
-    log.info("SnowflakeHiveListener: AlterTableEvent received");
-    if (tableEvent.getStatus())
-    {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
-                                                        snowflakeConf);
-    }
-  }
-
-  @Override
-  public void onAlterPartition(AlterPartitionEvent partitionEvent) throws MetaException
-  {
-    log.info("SnowflakeHiveListener: AlterPartitionEvent received");
-    if (partitionEvent.getStatus())
-    {
-      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
     }
   }
 }
