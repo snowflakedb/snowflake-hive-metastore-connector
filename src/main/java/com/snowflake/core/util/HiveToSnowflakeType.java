@@ -30,7 +30,7 @@ public class HiveToSnowflakeType
   public static final ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
       new ImmutableMap.Builder<String, String>()
       .put("BOOLEAN", "BOOLEAN")
-      .put("TINYINT", "SMALLINT")
+      .put("TINYINT", "TINYINT")
       .put("SMALLINT", "SMALLINT")
       .put("INT", "INT")
       .put("INTEGER", "INT")
