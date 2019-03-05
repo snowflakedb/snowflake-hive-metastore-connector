@@ -75,7 +75,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -117,7 +117,8 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 partition_type=user_specified " +
-                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'');",
+                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'') " +
+                     "AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -160,7 +161,8 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
+                     "partition_type=user_specified file_format=(TYPE=PARQUET) " +
+                     "AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -202,7 +204,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -247,7 +249,8 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
+                     "partition_type=user_specified file_format=(TYPE=PARQUET) " +
+                     "AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -284,7 +287,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@aStage/to/table " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -322,7 +325,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@aStage/ " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -433,7 +436,7 @@ public class CreateTableTest
                 "partition by (partcol,name)" +
                 "location=@someDB_t1 " +
                 "partition_type=user_specified " +
-                "file_format=(TYPE=CSV);");
+                "file_format=(TYPE=CSV) AUTO_REFRESH=false;");
   }
 
   /**
@@ -472,7 +475,7 @@ public class CreateTableTest
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
           "partition by (partcol,name)location=@someDB_t1 " +
-          "partition_type=user_specified file_format=(TYPE=CSV);",
+          "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -511,7 +514,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
+                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 

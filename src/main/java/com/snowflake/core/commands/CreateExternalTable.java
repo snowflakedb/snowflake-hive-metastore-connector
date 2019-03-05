@@ -169,7 +169,8 @@ public class CreateExternalTable implements Command
    *             name STRING as
    *               (parse_json(metadata$external_table_partition):NAME::STRING))
    *           partition by (partcol,name)location=@s1
-   *           partition_type=user_specified file_format=(TYPE=CSV);
+   *           partition_type=user_specified file_format=(TYPE=CSV)
+   *           AUTO_REFRESH=false;
    */
   private String generateCreateTableCommand(String location)
     throws UnsupportedOperationException
@@ -241,6 +242,9 @@ public class CreateExternalTable implements Command
         sfFileFmtType,
         hiveTable.getSd().getSerdeInfo(),
         hiveTable.getParameters()));
+
+    // All Hive-created tables have auto refresh disabled
+    sb.append(" AUTO_REFRESH=false");
     sb.append(";");
 
     return sb.toString();

@@ -71,7 +71,7 @@ public class AlterPartitionTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
                      "location=@someDB_t1 partition_type=user_specified " +
-                     "file_format=(TYPE=CSV);",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
 
     assertEquals("generated add partition command does not match " +
