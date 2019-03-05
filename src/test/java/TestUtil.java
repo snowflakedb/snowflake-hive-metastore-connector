@@ -49,7 +49,7 @@ public class TestUtil
         .when(mockConfig.get("snowflake.jdbc.db", null))
         .thenReturn("someDB");
     PowerMockito
-        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable_creds_from_conf", false))
+        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable-creds-from-conf", false))
         .thenReturn(true);
     PowerMockito
         .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))

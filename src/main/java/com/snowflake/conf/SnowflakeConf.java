@@ -48,10 +48,15 @@ public class SnowflakeConf extends Configuration
       "retryTimeout",
       "The time between retries when connecting with Snowflake, in milliseconds"),
     SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF(
-      "snowflake.hivemetastorelistener.enable_creds_from_conf",
-      "creds_from_conf",
+      "snowflake.hivemetastorelistener.enable-creds-from-conf",
+      "creds-from-conf",
       "Whether the Hive metastore listener should read credentials from Hive " +
-          "configurations.");
+          "configurations."),
+    SNOWFLAKE_TABLE_FILTER_REGEX(
+        "snowflake.hivemetastorelistener.table-filter-regex",
+        "table-filter-regex",
+        "A regex to filter events with. Only tables with names that match " +
+            "this regex will be handled.");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

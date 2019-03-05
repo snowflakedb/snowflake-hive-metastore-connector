@@ -8,6 +8,8 @@ import com.google.common.collect.ImmutableList;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import java.util.Iterator;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -34,11 +36,15 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
   private static SnowflakeConf snowflakeConf;
 
+  private static Pattern tableNameFilter; // null if there is no filter
+
   public SnowflakeHiveListener(Configuration config)
   {
     super(config);
     // generate the snowflake jdbc conf
     snowflakeConf = new SnowflakeConf();
+    tableNameFilter = snowflakeConf.getPattern(
+        SnowflakeConf.ConfVars.SNOWFLAKE_TABLE_FILTER_REGEX.getVarname(), null);
     log.info("SnowflakeHiveListener created");
   }
 
@@ -50,7 +56,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   public void onCreateTable(CreateTableEvent tableEvent)
   {
     logTableEvent(tableEvent, tableEvent.getTable());
-    if (tableEvent.getStatus())
+    if (shouldHandle(tableEvent, tableEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
                                                         snowflakeConf);
@@ -69,7 +75,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   public void onDropTable(DropTableEvent tableEvent)
   {
     logTableEvent(tableEvent, tableEvent.getTable());
-    if (tableEvent.getStatus())
+    if (shouldHandle(tableEvent, tableEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
                                                         snowflakeConf);
@@ -109,7 +115,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   {
     logPartitionsEvent(partitionEvent, partitionEvent.getTable(),
                        partitionEvent.getPartitionIterator());
-    if (partitionEvent.getStatus())
+    if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
                                                         snowflakeConf);
@@ -128,7 +134,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   public void onAlterTable(AlterTableEvent tableEvent) throws MetaException
   {
     logTableEvent(tableEvent, tableEvent.getNewTable());
-    if (tableEvent.getStatus())
+    if (shouldHandle(tableEvent, tableEvent.getNewTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
                                                         snowflakeConf);
@@ -149,7 +155,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     logPartitionsEvent(partitionEvent, partitionEvent.getTable(),
                        ImmutableList.<Partition>builder().add(
                            partitionEvent.getNewPartition()).build().iterator());
-    if (partitionEvent.getStatus())
+    if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
                                                         snowflakeConf);
@@ -205,5 +211,17 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
                              event.getClass().getSimpleName(),
                              tableName));
     }
+  }
+
+  /**
+   * Helper method to determine whether the listener should handle an event
+   * @param event The event
+   * @param table The Hive table associated with the event
+   * @return True if the event should be handled, false otherwise
+   */
+  private static boolean shouldHandle(ListenerEvent event, Table table)
+  {
+    return event.getStatus() &&
+        (tableNameFilter == null || tableNameFilter.matcher(table.getTableName()).matches());
   }
 }

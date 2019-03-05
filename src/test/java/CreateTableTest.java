@@ -533,7 +533,7 @@ public class CreateTableTest
 
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable_creds_from_conf", false))
+        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable-creds-from-conf", false))
         .thenReturn(false);
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
