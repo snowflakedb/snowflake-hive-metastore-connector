@@ -38,22 +38,22 @@ public class SnowflakeConf extends Configuration
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
       "The Snowflake connection string."),
     SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES(
-      "snowflake.hivemetastorelistener.stage", "stage",
+      "snowflake.hive-metastore-listener.stage", "stage",
       "The stage to use when creating external tables with Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT(
-      "snowflake.hivemetastorelistener.retry.count", "retryCount",
+      "snowflake.hive-metastore-listener.retry.count", "retryCount",
       "The number of retries when connecting with Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS(
-      "snowflake.hivemetastorelistener.retry.timeout",
+      "snowflake.hive-metastore-listener.retry.timeout",
       "retryTimeout",
       "The time between retries when connecting with Snowflake, in milliseconds"),
     SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF(
-      "snowflake.hivemetastorelistener.enable-creds-from-conf",
+      "snowflake.hive-metastore-listener.enable-creds-from-conf",
       "creds-from-conf",
       "Whether the Hive metastore listener should read credentials from Hive " +
           "configurations."),
     SNOWFLAKE_TABLE_FILTER_REGEX(
-        "snowflake.hivemetastorelistener.table-filter-regex",
+        "snowflake.hive-metastore-listener.table-filter-regex",
         "table-filter-regex",
         "A regex to filter events with. Only tables with names that match " +
             "this regex will be handled.");

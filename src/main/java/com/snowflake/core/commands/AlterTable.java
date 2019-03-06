@@ -54,7 +54,8 @@ public class AlterTable implements Command
       return new CreateExternalTable(newHiveTable,
                                      snowflakeConf,
                                      hiveConf,
-                                     false).generateCommands();
+                                     false // Do not replace table
+      ).generateCommands();
     }
     else
     {

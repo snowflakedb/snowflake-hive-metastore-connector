@@ -83,7 +83,7 @@ public class SnowflakeHiveListenerTests
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.getPattern(
-            "snowflake.hivemetastorelistener.table-filter-regex", null))
+            "snowflake.hive-metastore-listener.table-filter-regex", null))
         .thenReturn(Pattern.compile("not t1"));
     PowerMockito.whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
 
@@ -120,7 +120,7 @@ public class SnowflakeHiveListenerTests
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.getPattern(
-            "snowflake.hivemetastorelistener.table-filter-regex", null))
+            "snowflake.hive-metastore-listener.table-filter-regex", null))
         .thenReturn(Pattern.compile(".*"));
     PowerMockito.whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
 

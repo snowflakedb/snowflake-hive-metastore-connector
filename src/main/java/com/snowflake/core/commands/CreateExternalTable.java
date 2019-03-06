@@ -324,10 +324,11 @@ public class CreateExternalTable implements Command
     }
     else
     {
-      throw new IllegalArgumentException(
+      throw new IllegalArgumentException(String.format(
           "Configuration does not specify a stage to use. Add a " +
-              "configuration for snowflake.hivemetastorelistener.stage to " +
-              "specify the stage.");
+              "configuration for %s to " +
+              "specify the stage.",
+          ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname()));
     }
 
     Preconditions.checkNotNull(location);

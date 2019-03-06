@@ -268,7 +268,7 @@ public class CreateTableTest
     // Mock config
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
@@ -306,7 +306,7 @@ public class CreateTableTest
     // Mock config
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
@@ -344,7 +344,7 @@ public class CreateTableTest
     // Mock config
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
@@ -536,7 +536,7 @@ public class CreateTableTest
 
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.getBoolean("snowflake.hivemetastorelistener.enable-creds-from-conf", false))
+        .when(mockConfig.getBoolean("snowflake.hive-metastore-listener.enable-creds-from-conf", false))
         .thenReturn(false);
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
@@ -549,7 +549,7 @@ public class CreateTableTest
     catch (IllegalArgumentException ex)
     {
       assertEquals("Configuration does not specify a stage to use. Add a " +
-                       "configuration for snowflake.hivemetastorelistener.stage to specify the stage.",
+                       "configuration for snowflake.hive-metastore-listener.stage to specify the stage.",
                    ex.getMessage());
     }
 

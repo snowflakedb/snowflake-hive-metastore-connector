@@ -33,7 +33,7 @@ public class AlterPartition implements Command
   public AlterPartition(AlterPartitionEvent alterPartitionEvent,
                         SnowflakeConf snowflakeConf)
   {
-    // Unlike add partition events, alter partition events come in one by one
+    // Unlike add partition events, there's alter partition event per partition
     Preconditions.checkNotNull(alterPartitionEvent);
     this.hiveTable = Preconditions.checkNotNull(alterPartitionEvent.getTable());
     this.oldPartition =
@@ -63,7 +63,8 @@ public class AlterPartition implements Command
         .addAll(new CreateExternalTable(hiveTable,
                                         snowflakeConf,
                                         hiveConf,
-                                        false).generateCommands())
+                                        false // Do not replace table
+        ).generateCommands())
         .addAll(new AddPartition(hiveTable,
                                  partitionIterator).generateCommands())
         .build();
