@@ -40,15 +40,7 @@ public class AlterTableTest
   public void basicTouchTableGenerateCommandTest() throws Exception
   {
     Table table = TestUtil.initializeMockTable();
-
-    Configuration mockConfig = PowerMockito.mock(Configuration.class);
-    PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
-        .thenReturn("accessKeyId");
-    PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
-        .thenReturn("awsSecretKey");
-    HiveMetaStore.HMSHandler mockHandler =
-        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
-    PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
                                                           true, true, mockHandler);
 
@@ -69,8 +61,50 @@ public class AlterTableTest
                      "(partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
-                     "location=@someDB_t1 partition_type=user_specified " +
+                     "partition_type=user_specified location=@someDB_t1 " +
                      "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
+  }
+
+  /**
+   * A test for generating a alter (touch) table command
+   * Expects an implicitly partitioned Snowflake external table and a refresh
+   * statement.
+   * @throws Exception
+   */
+  @Test
+  public void unpartitionedTouchTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+    table.setPartitionKeys(new ArrayList<>());
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "int", null),
+        new FieldSchema("col2", "string", null)));
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
+                                                          true, true, mockHandler);
+
+    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = alterTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE IF NOT EXISTS someDB_t1 " +
+                     "url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE EXTERNAL TABLE IF NOT EXISTS t1(" +
+                     "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
+                     "partition_type=implicit location=@someDB_t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER EXTERNAL TABLE t1 REFRESH;",
+                 commands.get(2));
   }
 }

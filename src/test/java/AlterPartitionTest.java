@@ -70,7 +70,7 @@ public class AlterPartitionTest
                      "(partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
-                     "location=@someDB_t1 partition_type=user_specified " +
+                     "partition_type=user_specified location=@someDB_t1 " +
                      "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
 

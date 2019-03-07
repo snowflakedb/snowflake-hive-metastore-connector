@@ -74,8 +74,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -116,7 +116,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 partition_type=user_specified " +
+                     "partition by (partcol,name)partition_type=user_specified location=@someDB_t1 " +
                      "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'') " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
@@ -160,8 +160,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET) " +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
   }
@@ -203,8 +203,8 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:c2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -248,10 +248,52 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:col2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET) " +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
+  }
+
+  /**
+   * A test for creating an unpartitioned table and refreshing it
+   * @throws Exception
+   */
+  @Test
+  public void unpartitionedTouchTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+    table.setPartitionKeys(new ArrayList<>());
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "int", null),
+        new FieldSchema("col2", "string", null)));
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                     "url='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(" +
+                     "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
+                     "partition_type=implicit location=@someDB_t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER EXTERNAL TABLE t1 REFRESH;",
+                 commands.get(2));
   }
 
   /**
@@ -286,8 +328,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@aStage/to/table " +
-                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -324,8 +366,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@aStage/ " +
-                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@aStage/ file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -434,8 +476,8 @@ public class CreateTableTest
                 "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                 "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                 "partition by (partcol,name)" +
-                "location=@someDB_t1 " +
                 "partition_type=user_specified " +
+                "location=@someDB_t1 " +
                 "file_format=(TYPE=CSV) AUTO_REFRESH=false;");
   }
 
@@ -474,8 +516,8 @@ public class CreateTableTest
           "(parse_json(metadata$external_table_partition):PARTCOL::VARIANT)," +
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
-          "partition by (partcol,name)location=@someDB_t1 " +
-          "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+          "partition by (partcol,name)partition_type=user_specified " +
+          "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -513,8 +555,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 

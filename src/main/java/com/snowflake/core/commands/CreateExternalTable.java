@@ -216,25 +216,36 @@ public class CreateExternalTable implements Command
 
     sb.append(")");
 
-    // partition columns
-    sb.append("partition by (");
-
-    for (int i = 0; i < partCols.size(); ++i)
+    if (!partCols.isEmpty())
     {
-      sb.append(partCols.get(i).getName());
-      if (i != partCols.size() - 1)
+      // Use user specified partitions
+
+      // partition columns
+      sb.append("partition by (");
+
+      for (int i = 0; i < partCols.size(); ++i)
       {
-        sb.append(",");
+        sb.append(partCols.get(i).getName());
+        if (i != partCols.size() - 1)
+        {
+          sb.append(",");
+        }
       }
+      sb.append(")");
+
+      // partition_type
+      sb.append("partition_type=user_specified ");
     }
-    sb.append(")");
+    else
+    {
+      // Use implicitly specified partitions
+      sb.append("partition_type=implicit ");
+    }
+
 
     // location
     sb.append("location=@");
     sb.append(location + " ");
-
-    // partition_type
-    sb.append("partition_type=user_specified ");
 
     // file_format
     sb.append("file_format=");
@@ -333,6 +344,13 @@ public class CreateExternalTable implements Command
 
     Preconditions.checkNotNull(location);
     queryList.add(generateCreateTableCommand(location));
+
+    if (this.hiveTable.getPartitionKeys().isEmpty())
+    {
+      // Refresh implicitly partitioned tables after creation
+      queryList.add(String.format("ALTER EXTERNAL TABLE %s REFRESH;",
+                                  hiveTable.getTableName()));
+    }
 
     return queryList;
   }
