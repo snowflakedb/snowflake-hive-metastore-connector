@@ -59,8 +59,13 @@ public class SnowflakeConf extends Configuration
     SNOWFLAKE_TABLE_FILTER_REGEX(
         "snowflake.hive-metastore-listener.table-filter-regex",
         "table-filter-regex",
-        "A regex to filter events with. Only tables with names that match " +
-            "this regex will be handled.");
+        "A regex to filter events with. Tables with names that match " +
+            "this regex will be be ignored."),
+    SNOWFLAKE_DATABASE_FILTER_REGEX(
+        "snowflake.hive-metastore-listener.database-filter-regex",
+            "database-filter-regex",
+            "A regex to filter events with. Databases with names that match " +
+            "this regex will be be ignored.");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

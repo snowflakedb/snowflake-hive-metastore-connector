@@ -38,6 +38,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
   private static Pattern tableNameFilter; // null if there is no filter
 
+  private static Pattern databaseNameFilter; // null if there is no filter
+
   public SnowflakeHiveListener(Configuration config)
   {
     super(config);
@@ -45,6 +47,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     snowflakeConf = new SnowflakeConf();
     tableNameFilter = snowflakeConf.getPattern(
         SnowflakeConf.ConfVars.SNOWFLAKE_TABLE_FILTER_REGEX.getVarname(), null);
+    databaseNameFilter = snowflakeConf.getPattern(
+        SnowflakeConf.ConfVars.SNOWFLAKE_DATABASE_FILTER_REGEX.getVarname(), null);
     log.info("SnowflakeHiveListener created");
   }
 
@@ -260,9 +264,16 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
       return false;
     }
 
-    if (tableNameFilter != null && !tableNameFilter.matcher(table.getTableName()).matches())
+    if (tableNameFilter != null && tableNameFilter.matcher(table.getTableName()).matches())
     {
-      logTableEvent("Skip event, as table name did not match filter",
+      logTableEvent("Skip event, as table name matched filter",
+                    event, table);
+      return false;
+    }
+
+    if (databaseNameFilter != null && databaseNameFilter.matcher(table.getDbName()).matches())
+    {
+      logTableEvent("Skip event, as database name did not matched filter",
                     event, table);
       return false;
     }

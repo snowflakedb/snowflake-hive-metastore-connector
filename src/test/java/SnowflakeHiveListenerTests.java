@@ -70,6 +70,43 @@ public class SnowflakeHiveListenerTests
    * @throws Exception
    */
   @Test
+  public void tableFilterDropTable() throws Exception
+  {
+    Table table = new Table();
+    table.setTableName("t1");
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    DropTableEvent dropTableEvent = new DropTableEvent(table,
+                                                       true, true, mockHandler);
+
+    // Add a table filter regex via config, which doesn't match the table name
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.getPattern(
+            "snowflake.hive-metastore-listener.table-filter-regex", null))
+        .thenReturn(Pattern.compile(".*"));
+    PowerMockito.whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
+
+    SnowflakeHiveListener listener =
+        new SnowflakeHiveListener(mockHandler.getConf());
+
+    // Mock the static class SnowflakeClient
+    PowerMockito.mockStatic(SnowflakeClient.class);
+    PowerMockito.doNothing().when(SnowflakeClient.class);
+    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+
+    listener.onDropTable(dropTableEvent);
+
+    // Verify
+    PowerMockito.verifyStatic(times(0));
+    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+  }
+
+  /**
+   * A test to check if the listener respects the table filter regex
+   * @throws Exception
+   */
+  @Test
   public void tableFilterNoDropTable() throws Exception
   {
     Table table = new Table();
@@ -98,30 +135,72 @@ public class SnowflakeHiveListenerTests
     listener.onDropTable(dropTableEvent);
 
     // Verify
-    PowerMockito.verifyStatic(times(0));
+    PowerMockito.verifyStatic(times(1));
     SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+
+    PowerMockito.verifyStatic(times(1));
+    SnowflakeClient.createAndExecuteEventForSnowflake(dropTableEvent, mockConfig);
   }
 
   /**
-   * A test to check if the listener respects the table filter regex
+   * A test to check if the listener respects the database filter regex
    * @throws Exception
    */
   @Test
-  public void tableFilterDropTable() throws Exception
+  public void databaseFilterDropTable() throws Exception
   {
     Table table = new Table();
     table.setTableName("t1");
+    table.setDbName("db1");
 
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
-    // Add a table filter regex via config, which doesn't match the table name
+    // Add a database filter regex via config, which doesn't match the database name
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
         .when(mockConfig.getPattern(
-            "snowflake.hive-metastore-listener.table-filter-regex", null))
+            "snowflake.hive-metastore-listener.database-filter-regex", null))
         .thenReturn(Pattern.compile(".*"));
+    PowerMockito.whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
+
+    SnowflakeHiveListener listener =
+        new SnowflakeHiveListener(mockHandler.getConf());
+
+    // Mock the static class SnowflakeClient
+    PowerMockito.mockStatic(SnowflakeClient.class);
+    PowerMockito.doNothing().when(SnowflakeClient.class);
+    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+
+    listener.onDropTable(dropTableEvent);
+
+    // Verify
+    PowerMockito.verifyStatic(times(0));
+    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+  }
+
+  /**
+   * A test to check if the listener respects the database filter regex
+   * @throws Exception
+   */
+  @Test
+  public void databaseFilterNoDropTable() throws Exception
+  {
+    Table table = new Table();
+    table.setTableName("t1");
+    table.setDbName("db1");
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    DropTableEvent dropTableEvent = new DropTableEvent(table,
+                                                       true, true, mockHandler);
+
+    // Add a database filter regex via config, which doesn't match the database name
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.getPattern(
+            "snowflake.hive-metastore-listener.database-filter-regex", null))
+        .thenReturn(Pattern.compile("not db1"));
     PowerMockito.whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
 
     SnowflakeHiveListener listener =
