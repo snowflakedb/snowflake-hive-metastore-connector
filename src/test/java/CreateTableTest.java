@@ -64,7 +64,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -106,7 +106,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -150,7 +150,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -191,7 +191,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -236,7 +236,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -278,7 +278,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -415,6 +415,48 @@ public class CreateTableTest
   }
 
   /**
+   * A test for generating a create table command for a table with an
+   * integration
+   *
+   * @throws Exception
+   */
+  @Test
+  public void integrationCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    // Mock config
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.integration",
+                             null))
+        .thenReturn("anIntegration");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "STORAGE_INTEGRATION='anIntegration';",
+                 commands.get(0));
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+    assertEquals("Unexpected number of commands generated", 2, commands.size());
+  }
+
+  /**
    * Tests the error handling of the client during a create table event
    * @throws Exception
    */
@@ -466,7 +508,7 @@ public class CreateTableTest
     Mockito
         .verify(mockStatement, Mockito.times(2))
         .executeQuery("CREATE OR REPLACE STAGE someDB_t1 " +
-                          "url='s3://bucketname/path/to/table'" +
+                          "URL='s3://bucketname/path/to/table'" +
                           "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
                           "\nAWS_SECRET_KEY='awsSecretKey');");
     Mockito
@@ -504,7 +546,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -543,7 +585,7 @@ public class CreateTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='INVALID PROTOCOL://bucketname/path/to/table'\n" +
+                     "URL='INVALID PROTOCOL://bucketname/path/to/table'\n" +
                      "credentials=(/* Error generating credentials " +
                        "expression: The stage type does not exist or is " +
                        "unsupported for URL: INVALID " +

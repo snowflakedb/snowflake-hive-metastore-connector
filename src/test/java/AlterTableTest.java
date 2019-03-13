@@ -50,7 +50,7 @@ public class AlterTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));
@@ -90,7 +90,7 @@ public class AlterTableTest
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
                  commands.get(0));

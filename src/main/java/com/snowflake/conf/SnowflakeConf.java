@@ -40,6 +40,10 @@ public class SnowflakeConf extends Configuration
     SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES(
       "snowflake.hive-metastore-listener.stage", "stage",
       "The stage to use when creating external tables with Snowflake"),
+    SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES(
+        "snowflake.hive-metastore-listener.integration", "integration",
+        "The storage integration to use when creating external tables with " +
+            "Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT(
       "snowflake.hive-metastore-listener.retry.count", "retryCount",
       "The number of retries when connecting with Snowflake"),
