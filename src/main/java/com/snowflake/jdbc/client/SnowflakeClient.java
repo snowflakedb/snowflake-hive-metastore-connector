@@ -163,6 +163,11 @@ public class SnowflakeClient
 
     snowflakeConf.forEach(conf ->
       {
+        if (!conf.getKey().startsWith("snowflake.jdbc"))
+        {
+          return;
+        }
+
         SnowflakeConf.ConfVars confVar =
             SnowflakeConf.ConfVars.findByName(conf.getKey());
         if (confVar == null)

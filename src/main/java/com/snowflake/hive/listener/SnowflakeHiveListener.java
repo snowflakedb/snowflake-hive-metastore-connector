@@ -235,10 +235,16 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     String tableName = Preconditions.checkNotNull(hiveTable.getTableName());
     if (partitionIterator.hasNext())
     {
+      log.info(String.format(
+          "SnowflakeHiveListener: %s (Event='%s' Table='%s')",
+          message,
+          event.getClass().getSimpleName(),
+          tableName));
+
       // The number of partitions might be large- log each partition separately
       // to be safe.
       partitionIterator.forEachRemaining((partition) ->
-        logPartitionEvent(message, event, hiveTable, partition));
+        logPartitionEvent("continued for partition:", event, hiveTable, partition));
     }
     else
     {
