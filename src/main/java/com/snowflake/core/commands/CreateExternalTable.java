@@ -226,7 +226,6 @@ public class CreateExternalTable implements Command
                             (canReplace ? "OR REPLACE " : ""),
                             (canReplace ? "" : "IF NOT EXISTS ")));
     sb.append(hiveTable.getTableName());
-    sb.append("(");
 
     // columns
     List<FieldSchema> cols = hiveTable.getSd().getCols();
@@ -238,26 +237,31 @@ public class CreateExternalTable implements Command
           hiveTable.getSd().getSerdeInfo().getSerializationLib(),
           hiveTable.getSd().getInputFormat());
 
-    // With Snowflake, partition columns are defined with normal columns
-    for (int i = 0; i < cols.size(); i++)
+    if (!cols.isEmpty() || !partCols.isEmpty())
     {
-      sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType.toString()));
-      if (!partCols.isEmpty() || i != cols.size() - 1)
-      {
-        sb.append(",");
-      }
-    }
+      sb.append("(");
 
-    for (int i = 0; i < partCols.size(); i++)
-    {
-      sb.append(generatePartitionColumnStr(partCols.get(i)));
-      if (i != partCols.size() - 1)
+      // With Snowflake, partition columns are defined with normal columns
+      for (int i = 0; i < cols.size(); i++)
       {
-        sb.append(",");
+        sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType.toString()));
+        if (!partCols.isEmpty() || i != cols.size() - 1)
+        {
+          sb.append(",");
+        }
       }
-    }
 
-    sb.append(")");
+      for (int i = 0; i < partCols.size(); i++)
+      {
+        sb.append(generatePartitionColumnStr(partCols.get(i)));
+        if (i != partCols.size() - 1)
+        {
+          sb.append(",");
+        }
+      }
+
+      sb.append(")");
+    }
 
     if (!partCols.isEmpty())
     {
