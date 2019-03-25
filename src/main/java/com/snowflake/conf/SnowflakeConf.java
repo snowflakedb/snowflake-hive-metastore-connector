@@ -21,6 +21,9 @@ public class SnowflakeConf extends Configuration
 {
   private static final Logger log = LoggerFactory.getLogger(
       SnowflakeConf.class);
+
+  private static final String NOT_A_SF_JDBC_PROPERTY = null;
+
   public enum ConfVars
   {
     SNOWFLAKE_JDBC_USERNAME("snowflake.jdbc.username", "user",
@@ -37,13 +40,35 @@ public class SnowflakeConf extends Configuration
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
       "The Snowflake connection string."),
-    SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES("snowflake.hivemetastorelistener.stage", "stage",
-      "The stage to use when creating external tables with Snowflake"),
-    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT("snowflake.hivemetastorelistener.retry.count", "retryCount",
-      "The number of retries when connecting with Snowflake"),
-    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS("snowflake.hivemetastorelistener.retry.timeout",
-      "retryTimeout", "The time between retries when connecting with " +
-      "Snowflake, in milliseconds");
+    SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES(
+        "snowflake.hive-metastore-listener.stage", NOT_A_SF_JDBC_PROPERTY,
+        "The stage to use when creating external tables with Snowflake"),
+    SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES(
+        "snowflake.hive-metastore-listener.integration", NOT_A_SF_JDBC_PROPERTY,
+        "The storage integration to use when creating external tables with " +
+            "Snowflake"),
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_COUNT(
+        "snowflake.hive-metastore-listener.retry.count", NOT_A_SF_JDBC_PROPERTY,
+        "The number of retries when connecting with Snowflake"),
+    SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS(
+      "snowflake.hive-metastore-listener.retry.timeout",
+      "retryTimeout",
+      "The time between retries when connecting with Snowflake, in milliseconds"),
+    SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF(
+      "snowflake.hive-metastore-listener.enable-creds-from-conf",
+      NOT_A_SF_JDBC_PROPERTY,
+      "Whether the Hive metastore listener should read credentials from Hive " +
+          "configurations."),
+    SNOWFLAKE_TABLE_FILTER_REGEX(
+        "snowflake.hive-metastore-listener.table-filter-regex",
+        NOT_A_SF_JDBC_PROPERTY,
+        "A regex to filter events with. Tables with names that match " +
+            "this regex will be be ignored."),
+    SNOWFLAKE_DATABASE_FILTER_REGEX(
+        "snowflake.hive-metastore-listener.database-filter-regex",
+        NOT_A_SF_JDBC_PROPERTY,
+        "A regex to filter events with. Databases with names that match " +
+            "this regex will be be ignored.");
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

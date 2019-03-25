@@ -3,12 +3,9 @@
  */
 package com.snowflake.core.util;
 
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.conf.Configuration;
 
 import java.lang.UnsupportedOperationException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A utility function to help with retrieving stage credentials and generating
@@ -58,9 +55,9 @@ public class StageCredentialUtil
    * @param url The URL
    * @param config The Hadoop configuration
    * @return Snippet that represents credentials for the given location
-   * @throws IllegalArgumentException Thrown when the input is invalid
+   * @throws UnsupportedOperationException Thrown when the input is invalid
    */
-  public static SensitiveString generateCredentialsString(
+  public static String generateCredentialsString(
       String url, Configuration config)
   {
     try
@@ -86,13 +83,9 @@ public class StageCredentialUtil
             secretKey = config.get("fs." + prefix + ".secret.key");
           }
 
-          String credentialsFormat = String.format(
+          return String.format(
               "credentials=(AWS_KEY_ID='%s'\n" +
-                  "AWS_SECRET_KEY='{awsSecretKey}')", accessKey);
-
-          Map<String, String> secrets = new HashMap<>();
-          secrets.put("awsSecretKey", secretKey);
-          return new SensitiveString(credentialsFormat, secrets);
+                  "AWS_SECRET_KEY='%s')", accessKey, secretKey);
 
         default:
           throw new UnsupportedOperationException("Unsupported stage type: " +
@@ -101,9 +94,9 @@ public class StageCredentialUtil
     }
     catch (Exception e)
     {
-      return new SensitiveString(String.format(
+      return String.format(
           "credentials=(/* Error generating credentials expression: %s */)",
-          e.getMessage()));
+          e.getMessage());
     }
   }
 }

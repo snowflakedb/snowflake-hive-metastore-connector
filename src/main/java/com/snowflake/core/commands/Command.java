@@ -3,8 +3,6 @@
  */
 package com.snowflake.core.commands;
 
-import com.snowflake.core.util.StringUtil.SensitiveString;
-
 import java.util.List;
 
 /**
@@ -17,5 +15,5 @@ public interface Command
    * Generates the query in a string form to be sent to Snowflake
    * @return The Snowflake commands generated
    */
-  List<SensitiveString> generateCommands() throws Exception;
+  List<String> generateCommands() throws Exception;
 }

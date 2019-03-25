@@ -1,12 +1,9 @@
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.CreateExternalTable;
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.SerDeInfo;
-import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
 import org.junit.Test;
@@ -21,7 +18,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import javax.sql.RowSet;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -34,6 +30,7 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
@@ -55,31 +52,31 @@ public class CreateTableTest
   @Test
   public void basicCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -91,7 +88,7 @@ public class CreateTableTest
   @Test
   public void csvCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     Map<String, String> serDeParams = new HashMap<>();
     serDeParams.put("field.delim", "','");
@@ -100,28 +97,29 @@ public class CreateTableTest
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 partition_type=user_specified " +
-                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'');",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified location=@someDB_t1 " +
+                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'') " +
+                     "AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -133,7 +131,7 @@ public class CreateTableTest
   @Test
   public void parquetCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setInputFormat("org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat");
     table.getSd().getSerdeInfo().setSerializationLib(
@@ -143,28 +141,29 @@ public class CreateTableTest
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
+                     "AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -176,26 +175,26 @@ public class CreateTableTest
   @Test
   public void multiColumnCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
         new FieldSchema("col2", "string", null)));
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -204,9 +203,9 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:c2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -218,7 +217,7 @@ public class CreateTableTest
   @Test
   public void parquetMultiColumnCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
@@ -228,19 +227,19 @@ public class CreateTableTest
         "parquet.hive.serde.ParquetHiveSerDe");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
@@ -249,9 +248,52 @@ public class CreateTableTest
                      "col2 STRING as (VALUE:col2::STRING)," +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=PARQUET);",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
+                     "AUTO_REFRESH=false;",
+                 commands.get(1));
+  }
+
+  /**
+   * A test for creating an unpartitioned table and refreshing it
+   * @throws Exception
+   */
+  @Test
+  public void unpartitionedTouchTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+    table.setPartitionKeys(new ArrayList<>());
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "int", null),
+        new FieldSchema("col2", "string", null)));
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(" +
+                     "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
+                     "partition_type=implicit location=@someDB_t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER EXTERNAL TABLE t1 REFRESH;",
+                 commands.get(2));
   }
 
   /**
@@ -263,32 +305,32 @@ public class CreateTableTest
   @Test
   public void existingStageCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname/path");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@aStage/to/table " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(0).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
 
@@ -301,32 +343,32 @@ public class CreateTableTest
   @Test
   public void existingStageSamePathCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@aStage/ " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(0).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@aStage/ file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
 
@@ -339,19 +381,19 @@ public class CreateTableTest
   @Test
   public void existingStageInvalidCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // Mock config
-    SnowflakeConf mockConfig = initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
-        .when(mockConfig.get("snowflake.hivemetastorelistener.stage", null))
+        .when(mockConfig.get("snowflake.hive-metastore-listener.stage", null))
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    mockSnowflakeStageWithLocation("s3://bucketname2");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname2");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
@@ -373,16 +415,58 @@ public class CreateTableTest
   }
 
   /**
+   * A test for generating a create table command for a table with an
+   * integration
+   *
+   * @throws Exception
+   */
+  @Test
+  public void integrationCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    // Mock config
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.integration",
+                             null))
+        .thenReturn("anIntegration");
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "STORAGE_INTEGRATION='anIntegration';",
+                 commands.get(0));
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+    assertEquals("Unexpected number of commands generated", 2, commands.size());
+  }
+
+  /**
    * Tests the error handling of the client during a create table event
    * @throws Exception
    */
   @Test
   public void retryCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     // Mock JDBC connection to be unreliable during query execution
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
@@ -409,7 +493,7 @@ public class CreateTableTest
 
     // Mock configuration to have a wait time of zero (so tests are quick)
     SnowflakeConf
-        mockConfig = initializeMockConfig();
+        mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -424,7 +508,7 @@ public class CreateTableTest
     Mockito
         .verify(mockStatement, Mockito.times(2))
         .executeQuery("CREATE OR REPLACE STAGE someDB_t1 " +
-                          "url='s3://bucketname/path/to/table'" +
+                          "URL='s3://bucketname/path/to/table'" +
                           "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
                           "\nAWS_SECRET_KEY='awsSecretKey');");
     Mockito
@@ -434,9 +518,9 @@ public class CreateTableTest
                 "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                 "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                 "partition by (partcol,name)" +
-                "location=@someDB_t1 " +
                 "partition_type=user_specified " +
-                "file_format=(TYPE=CSV);");
+                "location=@someDB_t1 " +
+                "file_format=(TYPE=CSV) AUTO_REFRESH=false;");
   }
 
   /**
@@ -448,24 +532,24 @@ public class CreateTableTest
   @Test
   public void columnErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getPartitionKeys().forEach(
         fieldSchema -> fieldSchema.setType("NOT A VALID TYPE"));
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='s3://bucketname/path/to/table'\n" +
+                     "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='{awsSecretKey}');",
-                 commands.get(0).toString());
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
 
     assertEquals(
         "generated create external table command does not match " +
@@ -474,9 +558,9 @@ public class CreateTableTest
           "(parse_json(metadata$external_table_partition):PARTCOL::VARIANT)," +
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
-          "partition by (partcol,name)location=@someDB_t1 " +
-          "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1).toString());
+          "partition by (partcol,name)partition_type=user_specified " +
+          "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -488,34 +572,78 @@ public class CreateTableTest
   @Test
   public void credentialsErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getSd().setLocation("INVALID PROTOCOL://bucketname/path/to/table");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     CreateExternalTable createExternalTable =
-        new CreateExternalTable(createTableEvent, initializeMockConfig());
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<SensitiveString> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB_t1 " +
-                     "url='INVALID PROTOCOL://bucketname/path/to/table'\n" +
+                     "URL='INVALID PROTOCOL://bucketname/path/to/table'\n" +
                      "credentials=(/* Error generating credentials " +
                        "expression: The stage type does not exist or is " +
                        "unsupported for URL: INVALID " +
                        "PROTOCOL://bucketname/path/to/table */);",
-                 commands.get(0).toString());
+                 commands.get(0));
 
     assertEquals("generated create external table command does not match " +
                      "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)location=@someDB_t1 " +
-                     "partition_type=user_specified file_format=(TYPE=CSV);",
-                 commands.get(1).toString());
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+  }
+
+  /**
+   * A negative test for generating a create table command with no stage
+   * specified and disabling reading from Hive conf. The user's configuration
+   * should not be read if this flag is not enabled.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void stageErrorCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    HiveMetaStore.HMSHandler hmsHandler = TestUtil.initializeMockHMSHandler();
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, hmsHandler);
+
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.getBoolean("snowflake.hive-metastore-listener.enable-creds-from-conf", false))
+        .thenReturn(false);
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    try
+    {
+      createExternalTable.generateCommands();
+      fail("Command generation did not fail when it should have.");
+    }
+    catch (IllegalArgumentException ex)
+    {
+      assertEquals("Configuration does not specify a stage to use. Add a " +
+                       "configuration for snowflake.hive-metastore-listener.stage to specify the stage.",
+                   ex.getMessage());
+    }
+
+    // No attempts to read from config
+    Configuration mockHiveConfig = hmsHandler.getConf();
+    Mockito
+        .verify(mockHiveConfig, Mockito.times(0))
+        .get(any());
+    Mockito
+        .verify(mockHiveConfig, Mockito.times(0));
   }
 
   /**
@@ -525,12 +653,12 @@ public class CreateTableTest
   @Test
   public void logErrorCreateTableGenerateCommandTest() throws Exception
   {
-    Table table = initializeMockTable();
+    Table table = TestUtil.initializeMockTable();
     table.getSd().setInputFormat("NOT A VALID FORMAT");
     table.getSd().getSerdeInfo().setSerializationLib("NOT A VALID SERDE");
 
     CreateTableEvent createTableEvent =
-        new CreateTableEvent(table, true, initializeMockHMSHandler());
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
 
     // Mock JDBC connection to be unreliable during query execution
     RowSet mockRowSet = PowerMockito.mock(RowSet.class);
@@ -559,13 +687,7 @@ public class CreateTableTest
         .thenReturn(mockConnection);
 
     // Mock configuration to have a wait time of zero (so tests are quick)
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -573,105 +695,13 @@ public class CreateTableTest
 
     Mockito
         .verify(mockStatement, Mockito.times(1)); // No retries
-        String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
-          "(javax.transaction.NotSupportedException): 'Snowflake does not " +
+    String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
+          "(java.lang.UnsupportedOperationException): 'Snowflake does not " +
           "support the corresponding SerDe: NOT A VALID SERDE'\n" +
-          "STACKTRACE: 'javax.transaction.NotSupportedException: Snowflake does" +
+          "STACKTRACE: 'java.lang.UnsupportedOperationException: Snowflake does" +
           " not support the corresponding SerDe: NOT A VALID SERDE\n";
     assertEquals(1, executeQueryParams.size());
     assertTrue("Invocation does not contain the expected substring",
                executeQueryParams.get(0).contains(expectedSubtring));
-  }
-
-  /**
-   * Helper class to initialize the Hive metastore handler, which is commonly
-   * used for tests in this class.
-   */
-  private HiveMetaStore.HMSHandler initializeMockHMSHandler()
-  {
-    // Mock the HMSHandler and configurations
-    Configuration mockConfig = PowerMockito.mock(Configuration.class);
-    HiveMetaStore.HMSHandler mockHandler =
-        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
-    PowerMockito.when(mockConfig.get("fs.s3n.awsAccessKeyId"))
-        .thenReturn("accessKeyId");
-    PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
-        .thenReturn("awsSecretKey");
-    PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
-
-    return mockHandler;
-  }
-
-  /**
-   * Helper method to initialize the SnowflakeConf configuration class,
-   * which is commonly used for tests in this class.
-   */
-  private SnowflakeConf initializeMockConfig()
-  {
-    SnowflakeConf mockConfig = PowerMockito.mock(SnowflakeConf.class);
-    PowerMockito
-        .when(mockConfig.get("snowflake.jdbc.db", null))
-        .thenReturn("someDB");
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.timeout", 1000))
-        .thenReturn(0);
-    PowerMockito
-        .when(mockConfig.getInt("snowflake.hivemetastorelistener.retry.count", 3))
-        .thenReturn(3);
-    return mockConfig;
-  }
-
-  /**
-   * Helper method to initialize a base Table object for tests
-   */
-  private Table initializeMockTable()
-  {
-    Table table = new Table();
-
-    table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(
-        new FieldSchema("partcol", "int", null),
-        new FieldSchema("name", "string", null)));
-    table.setSd(new StorageDescriptor());
-    table.getSd().setCols(new ArrayList<>());
-    table.getSd().setInputFormat("org.apache.hadoop.mapred.TextInputFormat");
-    table.getSd().setLocation("s3n://bucketname/path/to/table");
-    table.getSd().setSerdeInfo(new SerDeInfo());
-    table.getSd().getSerdeInfo().setSerializationLib(
-        "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe");
-    table.getSd().getSerdeInfo().setParameters(new HashMap<>());
-    table.setParameters(new HashMap<>());
-
-    return table;
-  }
-
-  /**
-   * Helper method to mock the Snowflake client to return the provided stage
-   * location when querying Snowflake with a stage
-   * @param stageLocation The location that should be returned by the Snowflake
-   *                      client.
-   */
-  private void mockSnowflakeStageWithLocation(String stageLocation)
-  throws Exception
-  {
-    ResultSetMetaData mockMetadata = PowerMockito.mock(ResultSetMetaData.class);
-    PowerMockito.when(mockMetadata.getColumnCount()).thenReturn(3);
-    PowerMockito.when(mockMetadata.getColumnName(1)).thenReturn("something");
-    PowerMockito.when(mockMetadata.getColumnName(2)).thenReturn("url");
-    PowerMockito.when(mockMetadata.getColumnName(3)).thenReturn("something2");
-    RowSet mockRowSet = PowerMockito.mock(RowSet.class);
-    PowerMockito
-        .when(mockRowSet.next())
-        .thenReturn(true)
-        .thenReturn(false);
-    PowerMockito
-        .when(mockRowSet.getString(2))
-        .thenReturn(stageLocation);
-    PowerMockito.when(mockRowSet.getMetaData()).thenReturn(mockMetadata);
-    PowerMockito.mockStatic(SnowflakeClient.class);
-    PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
-        .when(SnowflakeClient.executeStatement(anyString(),
-                                               any(SnowflakeConf.class)))
-        .thenReturn(mockRowSet);
   }
 }

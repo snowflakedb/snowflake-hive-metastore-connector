@@ -8,7 +8,7 @@ import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.transaction.NotSupportedException;
+import java.lang.UnsupportedOperationException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public class HiveToSnowflakeType
   public static final ImmutableMap<String, String> hiveToSnowflakeDataTypeMap =
       new ImmutableMap.Builder<String, String>()
       .put("BOOLEAN", "BOOLEAN")
-      .put("TINYINT", "SMALLINT")
+      .put("TINYINT", "TINYINT")
       .put("SMALLINT", "SMALLINT")
       .put("INT", "INT")
       .put("INTEGER", "INT")
@@ -115,13 +115,13 @@ public class HiveToSnowflakeType
    * @param serDeInfo Details about the SerDe
    * @param tableProps Table properties the table was created with
    * @return Snippet representing a Snowflake file format
-   * @throws NotSupportedException Thrown when the input is invalid or
-   *                               unsupported
+   * @throws UnsupportedOperationException Thrown when the input is invalid or
+   *                                       unsupported
    */
   public static String toSnowflakeFileFormat(SnowflakeFileFormatTypes sfFileFmtType,
                                              SerDeInfo serDeInfo,
                                              Map<String, String> tableProps)
-      throws NotSupportedException
+      throws UnsupportedOperationException
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
     Map<String, String> serDeParams = serDeInfo.getParameters();
@@ -168,7 +168,7 @@ public class HiveToSnowflakeType
               snowflakeFileFormatOptions.put("SNAPPY_COMPRESSION", "FALSE");
               break;
             default:
-              throw new NotSupportedException(
+              throw new UnsupportedOperationException(
                   "Snowflake does not support the following compression " +
                       "format for Parquet: " + compression);
           }
@@ -190,12 +190,12 @@ public class HiveToSnowflakeType
    * @param serDeLib The SerDe class that the table was created with
    * @param hiveFileFormat The file format according to Hive
    * @return The corresponding Snowflake file format type
-   * @throws NotSupportedException Thrown when the SerDe is invalid or
-   *                                  unsupported.
+   * @throws UnsupportedOperationException Thrown when the SerDe is invalid or
+   *                                       unsupported.
    */
   public static SnowflakeFileFormatTypes toSnowflakeFileFormatType(String serDeLib,
                                                                    String hiveFileFormat)
-      throws NotSupportedException
+      throws UnsupportedOperationException
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
     // Snowflake file format is appropriate. For example:
@@ -221,7 +221,7 @@ public class HiveToSnowflakeType
       return SnowflakeFileFormatTypes.CSV;
     }
 
-    throw new NotSupportedException(
+    throw new UnsupportedOperationException(
         "Snowflake does not support the corresponding SerDe: " + serDeLib);
   }
 }

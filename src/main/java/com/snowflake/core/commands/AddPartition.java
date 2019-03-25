@@ -5,7 +5,6 @@ package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
 import com.snowflake.core.util.StringUtil;
-import com.snowflake.core.util.StringUtil.SensitiveString;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * A class for the AddPartition command
@@ -24,7 +22,7 @@ import java.util.stream.Collectors;
 public class AddPartition implements Command
 {
   /**
-   * Creates a AddPartition command
+   * Creates an AddPartition command
    * @param addPartitionEvent Event to generate a command from
    */
   public AddPartition(AddPartitionEvent addPartitionEvent)
@@ -32,6 +30,19 @@ public class AddPartition implements Command
     Preconditions.checkNotNull(addPartitionEvent);
     this.hiveTable = Preconditions.checkNotNull(addPartitionEvent.getTable());
     this.getPartititonsIterator = addPartitionEvent::getPartitionIterator;
+  }
+
+  /**
+   * Creates an AddPartition command without an event
+   * @param hiveTable The Hive table to generate a command from
+   * @param getPartititonsIterator A method that supplies an iterator for
+   *                               partitions to add
+   */
+  protected AddPartition(Table hiveTable,
+                         Supplier<Iterator<Partition>> getPartititonsIterator)
+  {
+    this.hiveTable = hiveTable;
+    this.getPartititonsIterator = getPartititonsIterator;
   }
 
   /**
@@ -76,7 +87,7 @@ public class AddPartition implements Command
    * Generates the commands for add partition.
    * @return The Snowflake commands generated
    */
-  public List<SensitiveString> generateCommands()
+  public List<String> generateCommands()
   {
     List<String> queryList = new ArrayList<>();
 
@@ -87,8 +98,7 @@ public class AddPartition implements Command
       queryList.add(this.generateAddPartitionCommand(partition));
     }
 
-    return queryList
-        .stream().map(SensitiveString::new).collect(Collectors.toList());
+    return queryList;
   }
 
   private final Table hiveTable;
