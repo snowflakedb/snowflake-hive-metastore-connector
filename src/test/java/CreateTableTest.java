@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ */
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.jdbc.client.SnowflakeClient;
@@ -492,8 +495,7 @@ public class CreateTableTest
         .thenReturn(mockConnection);
 
     // Mock configuration to have a wait time of zero (so tests are quick)
-    SnowflakeConf
-        mockConfig = TestUtil.initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
