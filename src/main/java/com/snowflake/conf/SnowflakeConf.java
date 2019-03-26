@@ -51,9 +51,24 @@ public class SnowflakeConf extends Configuration
         "snowflake.hive-metastore-listener.retry.count", NOT_A_SF_JDBC_PROPERTY,
         "The number of retries when connecting with Snowflake"),
     SNOWFLAKE_HIVEMETASTORELISTENER_RETRY_TIMEOUT_MILLISECONDS(
-      "snowflake.hive-metastore-listener.retry.timeout",
-      "retryTimeout",
-      "The time between retries when connecting with Snowflake, in milliseconds"),
+        "snowflake.hive-metastore-listener.retry.timeout",
+        "retryTimeout",
+        "The time between retries when connecting with Snowflake, in milliseconds"),
+    SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS(
+        "snowflake.hive-metastore-listener.force-synchronous",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Forces the Hive listener to wait for Snowflake queries to execute " +
+            "instead of queueing them for a background task."),
+    SNOWFLAKE_CLIENT_THREAD_COUNT(
+        "snowflake.hive-metastore-listener.client-thread-count",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Determines the number of possible concurrent clients to communicate " +
+            "with Snowflake"),
+    SNOWFLAKE_CLIENT_BATCHING_PERIOD(
+        "snowflake.hive-metastore-listener.batching-period",
+        NOT_A_SF_JDBC_PROPERTY,
+        "The period in milliseconds that the Snowflake client should wait to " +
+            "combine similar statements with."),
     SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF(
       "snowflake.hive-metastore-listener.enable-creds-from-conf",
       NOT_A_SF_JDBC_PROPERTY,

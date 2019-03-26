@@ -7,6 +7,7 @@ import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.LogCommand;
 import com.snowflake.core.util.CommandGenerator;
+import com.snowflake.core.util.BatchScheduler;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
+import java.util.Queue;
 
 /**
  * Class that uses the snowflake jdbc to connect to snowflake.
@@ -27,16 +29,22 @@ import java.util.Properties;
  */
 public class SnowflakeClient
 {
-
   private static final Logger log =
       LoggerFactory.getLogger(SnowflakeHiveListener.class);
+
+  private static BatchScheduler<List<String>> scheduler;
 
   /**
    * Creates and executes an event for snowflake. The steps are:
    * 1. Generate the list of Snowflake queries that will need to be run given
    *    the Hive command
+   * 2. Queue a query to Snowflake
+   *
+   * At a predetermined interval, the queued queries will be executed.
+   * This includes:
+   * 1. Batching similar queries
    * 2. Get the connection to a Snowflake account
-   * 3. Run the query on Snowflake
+   * 3. Run the queries on Snowflake
    * @param event - the hive event
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
@@ -66,6 +74,30 @@ public class SnowflakeClient
       commandList = new LogCommand(e).generateCommands();
     }
 
+    boolean backgroundTaskEnabled = !snowflakeConf.getBoolean(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS.getVarname(), false);
+    if (backgroundTaskEnabled)
+    {
+      initScheduler(snowflakeConf);
+      scheduler.enqueueMessage(commandList);
+    }
+    else
+    {
+      executeStatements(commandList, snowflakeConf);
+    }
+  }
+
+  /**
+   * Helper method to connect to Snowflake and execute a list of queries
+   * @param commandList - The list of queries to execute
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  public static void executeStatements(List<String> commandList,
+                                        SnowflakeConf snowflakeConf)
+  {
+    log.info("Executing statements: " + String.join(", ", commandList));
+
     // Get connection
     log.info("Getting connection to the Snowflake");
     try (Connection connection = retry(
@@ -74,7 +106,7 @@ public class SnowflakeClient
       commandList.forEach(commandStr ->
       {
         try (Statement statement =
-                retry(connection::createStatement, snowflakeConf))
+            retry(connection::createStatement, snowflakeConf))
         {
           log.info("Executing command: " + commandStr);
           ResultSet resultSet = retry(
@@ -91,7 +123,8 @@ public class SnowflakeClient
               }
               else
               {
-                sb.append(resultSet.getString(i) + "|");
+                sb.append(resultSet.getString(i));
+                sb.append("|");
               }
             }
             sb.append("\n");
@@ -101,26 +134,35 @@ public class SnowflakeClient
         catch (Exception e)
         {
           log.error("There was an error executing the statement: " +
-              e.getMessage());
+                        e.getMessage());
         }
       });
     }
     catch (java.sql.SQLException e)
     {
       log.error("There was an error creating the query: " +
-                e.getMessage());
-      return;
+                    e.getMessage());
     }
   }
 
+  /**
+   * (Deprecated)
+   * Utility method to connect to Snowflake and execute a query.
+   * @param commandStr - The query to execute
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   * @return The result of the executed query
+   * @throws SQLException Thrown if there was an error executing the
+   *                      statement or forming a connection.
+   */
   public static ResultSet executeStatement(String commandStr,
                                            SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try (Connection connection = retry(() -> getConnection(snowflakeConf),
                                        snowflakeConf);
-         Statement statement = retry(connection::createStatement,
-                                     snowflakeConf))
+        Statement statement = retry(connection::createStatement,
+                                    snowflakeConf))
     {
       log.info("Executing command: " + commandStr);
       ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
@@ -137,6 +179,47 @@ public class SnowflakeClient
   }
 
   /**
+   * Helper method. Initializes and starts the query scheduler
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  private static void initScheduler(SnowflakeConf snowflakeConf)
+  {
+    if (scheduler != null)
+    {
+      return;
+    }
+
+    int numThreads = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_THREAD_COUNT.getVarname(), 8);
+
+    int batchingPeriod = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_BATCHING_PERIOD.getVarname(), 1000);
+
+    scheduler = new BatchScheduler<>(numThreads, batchingPeriod,
+        (q, s) -> processMessages(q, s, snowflakeConf));
+  }
+
+  /**
+   * Method that is periodically invoked the by the batch scheduler
+   * @param commandQueue Queue containing messages
+   * @param scheduler An available thread pool to submit tasks to
+   * @param snowflakeConf The Snowflake configuration
+   */
+  private static void processMessages(Queue<List<String>> commandQueue,
+                                      BatchScheduler<List<String>> scheduler,
+                                      SnowflakeConf snowflakeConf)
+  {
+    while(!commandQueue.isEmpty())
+    {
+      List<String> commandList = commandQueue.remove();
+
+      // TODO: Batch requests
+      scheduler.submitTask(() -> executeStatements(commandList, snowflakeConf));
+    }
+  }
+
+  /**
    * Get the connection to the Snowflake account.
    * First finds a Snowflake driver and connects to Snowflake using the
    * given properties.
@@ -145,8 +228,7 @@ public class SnowflakeClient
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(
-      SnowflakeConf snowflakeConf)
+  private static Connection getConnection(SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try
