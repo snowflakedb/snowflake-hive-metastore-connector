@@ -32,6 +32,8 @@ public class SnowflakeConf extends Configuration
       "The password to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_ACCOUNT("snowflake.jdbc.account", "account",
       "The account to use to connect to Snowflake."),
+    SNOWFLAKE_JDBC_ROLE("snowflake.jdbc.role", "role",
+      "The role to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_DB("snowflake.jdbc.db", "db",
       "The database to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_SCHEMA("snowflake.jdbc.schema", "schema",
