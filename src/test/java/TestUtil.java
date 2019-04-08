@@ -69,6 +69,9 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.getBoolean("snowflake.hive-metastore-listener.force-synchronous", false))
         .thenReturn(true);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.data-column-casing", "NONE"))
+        .thenReturn("NONE");
     return mockConfig;
   }
 
