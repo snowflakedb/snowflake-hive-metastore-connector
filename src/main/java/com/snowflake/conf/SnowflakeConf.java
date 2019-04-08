@@ -85,7 +85,13 @@ public class SnowflakeConf extends Configuration
         "snowflake.hive-metastore-listener.database-filter-regex",
         NOT_A_SF_JDBC_PROPERTY,
         "A regex to filter events with. Databases with names that match " +
-            "this regex will be be ignored.");
+            "this regex will be be ignored."),
+    SNOWFLAKE_DATA_COLUMN_CASING(
+        "snowflake.hive-metastore-listener.data-column-casing",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Specifies the casing for columns in the data. Acceptable values are " +
+            "UPPER, LOWER"
+    );
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())
