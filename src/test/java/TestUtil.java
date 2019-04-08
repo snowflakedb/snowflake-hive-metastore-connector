@@ -57,6 +57,9 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.getInt("snowflake.hive-metastore-listener.retry.count", 3))
         .thenReturn(3);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.data-column-casing", "NONE"))
+        .thenReturn("NONE");
     return mockConfig;
   }
 

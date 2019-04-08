@@ -172,7 +172,18 @@ public class CreateExternalTable implements Command
     {
       // Note: With Snowflake, keys in VALUE are case-sensitive. Rely on the
       //       user to provide columns with casing that match the data.
-      sb.append(columnSchema.getName());
+      String columnName = columnSchema.getName();
+      String casingOverride = snowflakeConf.get(
+          ConfVars.SNOWFLAKE_DATA_COLUMN_CASING.getVarname(), "NONE");
+      if (casingOverride.equalsIgnoreCase("UPPER"))
+      {
+        columnName = columnName.toUpperCase();
+      }
+      else if (casingOverride.equalsIgnoreCase("LOWER"))
+      {
+        columnName = columnName.toLowerCase();
+      }
+      sb.append(columnName);
     }
     sb.append("::");
     sb.append(snowflakeType);
