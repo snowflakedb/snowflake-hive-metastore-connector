@@ -11,7 +11,7 @@ import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil;
 import com.snowflake.jdbc.client.SnowflakeClient;
-import javafx.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -119,7 +119,7 @@ public class CreateExternalTable implements Command
         HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
         StageCredentialUtil.generateCredentialsString(hiveUrl, hiveConf));
 
-    return new Pair<>(command, stageName);
+    return Pair.of(command, stageName);
   }
 
   /**
@@ -140,7 +140,7 @@ public class CreateExternalTable implements Command
         HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
         String.format("STORAGE_INTEGRATION='%s'", integration));
 
-    return new Pair<>(command, stageName);
+    return Pair.of(command, stageName);
   }
 
   /**
