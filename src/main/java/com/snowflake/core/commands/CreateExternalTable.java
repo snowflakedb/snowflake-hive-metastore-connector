@@ -11,7 +11,6 @@ import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatType;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil;
 import com.snowflake.jdbc.client.SnowflakeClient;
-import javafx.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -22,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A class for the CreateExternalTable command
@@ -104,48 +104,6 @@ public class CreateExternalTable implements Command
                            StringUtil.escapeSqlIdentifier(stageName),
                            StringUtil.escapeSqlText(location),
                            extraArguments);
-  }
-
-  /**
-   * Generate the create stage command
-   * @return a tuple with the Snowflake command generated, and the stage name.
-   *         An example of the command would be:
-   *         CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
-   *         credentials=(AWS_KEY_ID='{accessKeyId}'
-   *                      AWS_SECRET_KEY='{awsSecretKey}');
-   */
-  private Pair<String, String> generateCreateStageCommandFromHiveConfig()
-  {
-    String stageName = generateStageName(hiveTable, snowflakeConf);
-    String hiveUrl = hiveTable.getSd().getLocation();
-    String command = generateCreateStageCommand(
-        this.canReplace,
-        stageName,
-        HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
-        StageCredentialUtil.generateCredentialsString(hiveUrl, hiveConf));
-
-    return new Pair<>(command, stageName);
-  }
-
-  /**
-   * Generate the create stage command
-   * @param integration The storage integration to create a stage with
-   * @return a tuple with the Snowflake command generated, and the stage name.
-   *         An example of the command would be:
-   *         CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
-   *         STORAGE_INTEGRATION='storageIntegration';
-   */
-  private Pair<String, String> generateCreateStageCommandFromIntegration(String integration)
-  {
-    String stageName = generateStageName(hiveTable, snowflakeConf);
-    String hiveUrl = hiveTable.getSd().getLocation();
-    String command = generateCreateStageCommand(
-        this.canReplace,
-        stageName,
-        HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
-        String.format("STORAGE_INTEGRATION=%s", StringUtil.escapeSqlIdentifier(integration)));
-
-    return new Pair<>(command, stageName);
   }
 
   /**
@@ -330,6 +288,82 @@ public class CreateExternalTable implements Command
     return sb.toString();
   }
 
+  /**
+   * Generate the create stage command or get a location suitable for a
+   * create table command.
+   * @return a tuple with the Snowflake command generated, and a location
+   *         suitable for a create table command. If a stage does not need to
+   *         be created, the command is empty.
+   *         Examples of the command include:
+   *           CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
+   *             credentials=(AWS_KEY_ID='{accessKeyId}'
+   *                          AWS_SECRET_KEY='{awsSecretKey}');
+   *
+   *           CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
+   *             STORAGE_INTEGRATION='storageIntegration';
+   */
+  private LocationWithCreateStageCommand generateLocationWithCommand()
+      throws SQLException
+  {
+    String hiveTableLocation = hiveTable.getSd().getLocation();
+    String integration = snowflakeConf.get(
+        ConfVars.SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
+    String stage = snowflakeConf.get(
+        ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
+
+    String location;
+    String command;
+    if (integration != null)
+    {
+      // An integration was provided. Use it to create a stage
+      location = generateStageName(hiveTable, snowflakeConf);
+      command = generateCreateStageCommand(
+          this.canReplace,
+          location,
+          HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation),
+          String.format("STORAGE_INTEGRATION=%s",
+                        StringUtil.escapeSqlIdentifier(integration)));
+    }
+    else if (stage != null)
+    {
+      // A stage was specified, use it
+      String tableLocation = HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation);
+      String stageLocation = getStageLocationFromStageName(stage);
+      String relativeLocation =
+          StringUtil.relativizeURI(stageLocation, tableLocation)
+              .orElseThrow(() -> new IllegalArgumentException(String.format(
+                  "The table location must be a subpath of the stage " +
+                      "location. tableLocation: '%s', stageLocation: '%s'",
+                  tableLocation,
+                  stageLocation)));
+
+      location = stage + "/" + relativeLocation;
+      command = null;
+    }
+    else if (snowflakeConf.getBoolean(
+        ConfVars.SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF.getVarname(), false))
+    {
+      // No stage was specified, create one
+      location = generateStageName(hiveTable, snowflakeConf);
+      command = generateCreateStageCommand(
+          this.canReplace,
+          location,
+          HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation),
+          StageCredentialUtil.generateCredentialsString(hiveTableLocation, hiveConf));
+    }
+    else
+    {
+      throw new IllegalArgumentException(String.format(
+          "Configuration does not specify a stage to use. Add a " +
+              "configuration for %s to " +
+              "specify the stage.",
+          ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname()));
+    }
+
+    Preconditions.checkNotNull(location);
+    return new LocationWithCreateStageCommand(location, Optional.ofNullable(command));
+  }
+
   private String getStageLocationFromStageName(String stageName)
       throws SQLException
   {
@@ -383,50 +417,9 @@ public class CreateExternalTable implements Command
   {
     List<String> queryList = new ArrayList<>();
 
-    String integration = snowflakeConf.get(
-        ConfVars.SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
-    String stage = snowflakeConf.get(
-        ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
-    String location;
-    if (integration != null)
-    {
-      Pair<String, String> createStageQuery =
-          generateCreateStageCommandFromIntegration(integration);
-      queryList.add(createStageQuery.getKey());
-      location = createStageQuery.getValue();
-    }
-    else if (stage != null)
-    {
-      // A stage was specified, use it
-      String tableLocation = HiveToSnowflakeType.toSnowflakeURL(
-          hiveTable.getSd().getLocation());
-      String stageLocation = getStageLocationFromStageName(stage);
-      String relativeLocation =
-          StringUtil.relativizeURI(stageLocation, tableLocation)
-          .orElseThrow(() -> new IllegalArgumentException(String.format(
-              "The table location must be a subpath of the stage " +
-                  "location. tableLocation: '%s', stageLocation: '%s'",
-              tableLocation,
-              stageLocation)));
-
-      location = stage + "/" + relativeLocation;
-    }
-    else if (snowflakeConf.getBoolean(
-        ConfVars.SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF.getVarname(), false))
-    {
-      // No stage was specified, create one
-      Pair<String, String> createStageQuery = generateCreateStageCommandFromHiveConfig();
-      queryList.add(createStageQuery.getKey());
-      location = createStageQuery.getValue();
-    }
-    else
-    {
-      throw new IllegalArgumentException(String.format(
-          "Configuration does not specify a stage to use. Add a " +
-              "configuration for %s to " +
-              "specify the stage.",
-          ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname()));
-    }
+    LocationWithCreateStageCommand stageLocationAndCommand = generateLocationWithCommand();
+    String location = stageLocationAndCommand.getLocation();
+    stageLocationAndCommand.getCommand().ifPresent(queryList::add);
 
     Preconditions.checkNotNull(location);
     queryList.add(generateCreateTableCommand(location));
@@ -448,4 +441,32 @@ public class CreateExternalTable implements Command
   private final SnowflakeConf snowflakeConf;
 
   private boolean canReplace;
+
+  /**
+   * Class that contains output from generateLocation.
+   * Contains a location suitable for creating a table with, as well as the
+   * command to its stage with, if a new stage should be used.
+   */
+  private class LocationWithCreateStageCommand
+  {
+    private String location;
+
+    private Optional<String> command;
+
+    LocationWithCreateStageCommand(String location, Optional<String> command)
+    {
+      this.location = location;
+      this.command = command;
+    }
+
+    String getLocation()
+    {
+      return location;
+    }
+
+    Optional<String> getCommand()
+    {
+      return command;
+    }
+  }
 }
