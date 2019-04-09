@@ -41,7 +41,9 @@ public class DropTableTest
     DropTableEvent dropTableEvent = new DropTableEvent(table,
         true, true, mockHandler);
 
-    DropExternalTable dropExternalTable = new DropExternalTable(dropTableEvent);
+    DropExternalTable dropExternalTable =
+        new DropExternalTable(dropTableEvent,
+                              TestUtil.initializeMockConfig());
 
     List<String> commands = dropExternalTable.generateCommands();
     assertEquals("generated drop table command does not match " +
@@ -51,7 +53,7 @@ public class DropTableTest
 
     assertEquals("generated drop stage command does not match " +
         "expected drop stage command",
-        "DROP STAGE IF EXISTS t1;",
+        "DROP STAGE IF EXISTS someDB__t1;",
         commands.get(1));
   }
 }

@@ -55,7 +55,7 @@ public class AlterPartitionTest
     List<String> commands = alterPartition.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE STAGE IF NOT EXISTS someDB_t1 " +
+                 "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -67,7 +67,7 @@ public class AlterPartitionTest
                      "(partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
-                     "partition_type=user_specified location=@someDB_t1 " +
+                     "partition_type=user_specified location=@someDB__t1 " +
                      "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
 

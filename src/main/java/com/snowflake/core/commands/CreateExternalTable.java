@@ -51,7 +51,7 @@ public class CreateExternalTable implements Command
    * @param hiveTable The Hive table to generate a command from
    * @param snowflakeConf The configuration for Snowflake Hive metastore
    *                      listener
-   * @param hiveTable The Hive configuration
+   * @param hiveConf The Hive configuration
    * @param canReplace Whether to replace existing resources or not
    */
   protected CreateExternalTable(Table hiveTable,
@@ -67,12 +67,15 @@ public class CreateExternalTable implements Command
 
   /**
    * Helper method to generate a stage name for newly created stages.
-   * @return The generated stage name. For example, "someDb_aTable".
+   * @param hiveTable The Hive table to generate a command from
+   * @param snowflakeConf The Hive configuration
+   * @return The generated stage name. For example, "someDb__aTable".
    */
-  private String generateStageName()
+  public static String generateStageName(Table hiveTable,
+                                         SnowflakeConf snowflakeConf)
   {
     return String.format(
-        "%s_%s",
+        "%s__%s", // double underscore
         snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(), null),
         hiveTable.getTableName());
   }
@@ -111,7 +114,7 @@ public class CreateExternalTable implements Command
    */
   private Pair<String, String> generateCreateStageCommandFromHiveConfig()
   {
-    String stageName = generateStageName();
+    String stageName = generateStageName(hiveTable, snowflakeConf);
     String hiveUrl = hiveTable.getSd().getLocation();
     String command = generateCreateStageCommand(
         this.canReplace,
@@ -132,7 +135,7 @@ public class CreateExternalTable implements Command
    */
   private Pair<String, String> generateCreateStageCommandFromIntegration(String integration)
   {
-    String stageName = generateStageName();
+    String stageName = generateStageName(hiveTable, snowflakeConf);
     String hiveUrl = hiveTable.getSd().getLocation();
     String command = generateCreateStageCommand(
         this.canReplace,

@@ -83,6 +83,7 @@ public class TestUtil
     Table table = new Table();
 
     table.setTableName("t1");
+    table.setDbName("someDB");
     table.setPartitionKeys(Arrays.asList(
         new FieldSchema("partcol", "int", null),
         new FieldSchema("name", "string", null)));
