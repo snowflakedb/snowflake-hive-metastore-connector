@@ -120,7 +120,7 @@ public class BatchScheduler<T>
       {
         log.info("Hit exception running scheduled action: " + ex.getMessage());
       }
-    }, 0, batchingPeriod, TimeUnit.MICROSECONDS);
+    }, 0, batchingPeriod, TimeUnit.MILLISECONDS);
     log.info("Started scheduler");
   }
 }
