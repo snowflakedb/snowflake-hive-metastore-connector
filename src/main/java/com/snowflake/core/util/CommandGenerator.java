@@ -47,13 +47,12 @@ public class CommandGenerator
     if (event instanceof CreateTableEvent)
     {
       log.info("Generating Create Table command");
-      command = new CreateExternalTable((CreateTableEvent)event,
-                                        snowflakeConf);
+      command = new CreateExternalTable((CreateTableEvent)event, snowflakeConf);
     }
     else if (event instanceof DropTableEvent)
     {
       log.info("Generating Drop Table command");
-      command = new DropExternalTable((DropTableEvent)event);
+      command = new DropExternalTable((DropTableEvent)event, snowflakeConf);
     }
     else if (event instanceof AddPartitionEvent)
     {
