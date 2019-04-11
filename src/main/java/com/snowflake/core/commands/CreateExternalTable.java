@@ -7,7 +7,7 @@ import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.conf.SnowflakeConf.ConfVars;
 import com.snowflake.core.util.HiveToSnowflakeType;
-import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatTypes;
+import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatType;
 import com.snowflake.core.util.StageCredentialUtil;
 import com.snowflake.core.util.StringUtil;
 import com.snowflake.jdbc.client.SnowflakeClient;
@@ -68,7 +68,8 @@ public class CreateExternalTable implements Command
   /**
    * Helper method to generate a stage name for newly created stages.
    * @param hiveTable The Hive table to generate a command from
-   * @param snowflakeConf The Hive configuration
+   * @param snowflakeConf The configuration for Snowflake Hive metastore
+   *                      listener
    * @return The generated stage name. For example, "someDb__aTable".
    */
   public static String generateStageName(Table hiveTable,
@@ -149,13 +150,18 @@ public class CreateExternalTable implements Command
   /**
    * Generate the string for a column to be used in the query
    * @param columnSchema Details about the column
-   * @param columnPosition Position of this column (used for CSV columns only)
+   * @param columnPosition Position of this column (used for CSV columns only).
+   *                       Zero-based.
    * @param snowflakeFileFormatType Snowflake's file format type
+   * @param snowflakeConf The configuration for Snowflake Hive metastore
+   *                      listener
    * @return Snippet of a command that represents a column, for example:
    *         col1 INT as (VALUE:c1::INT)
    */
-  private String generateColumnStr(FieldSchema columnSchema, int columnPosition,
-                                   String snowflakeFileFormatType)
+  public static String generateColumnStr(FieldSchema columnSchema,
+                                         int columnPosition,
+                                         SnowflakeFileFormatType snowflakeFileFormatType,
+                                         SnowflakeConf snowflakeConf)
   {
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
@@ -164,7 +170,7 @@ public class CreateExternalTable implements Command
     sb.append(" ");
     sb.append(snowflakeType);
     sb.append(" as (VALUE:");
-    if (snowflakeFileFormatType.equals("CSV"))
+    if (snowflakeFileFormatType == SnowflakeFileFormatType.CSV)
     {
       // For CSV, Snowflake populates VALUE with the keys c1, c2, etc. for each
       // column
@@ -246,7 +252,7 @@ public class CreateExternalTable implements Command
     List<FieldSchema> partCols = hiveTable.getPartitionKeys();
 
     // determine the file format type for Snowflake
-    SnowflakeFileFormatTypes sfFileFmtType =
+    SnowflakeFileFormatType sfFileFmtType =
         HiveToSnowflakeType.toSnowflakeFileFormatType(
           hiveTable.getSd().getSerdeInfo().getSerializationLib(),
           hiveTable.getSd().getInputFormat());
@@ -258,7 +264,8 @@ public class CreateExternalTable implements Command
       // With Snowflake, partition columns are defined with normal columns
       for (int i = 0; i < cols.size(); i++)
       {
-        sb.append(generateColumnStr(cols.get(i), i, sfFileFmtType.toString()));
+        sb.append(generateColumnStr(
+            cols.get(i), i, sfFileFmtType, snowflakeConf));
         if (!partCols.isEmpty() || i != cols.size() - 1)
         {
           sb.append(",");

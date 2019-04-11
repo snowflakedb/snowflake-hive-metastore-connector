@@ -4,14 +4,20 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.snowflake.conf.SnowflakeConf;
+import com.snowflake.core.util.HiveToSnowflakeType;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
 
 import java.lang.UnsupportedOperationException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A class for the AlterTable command
@@ -39,6 +45,70 @@ public class AlterTable implements Command
   }
 
   /**
+   * Generates commands to add columns to a Snowflake table.
+   * @param hiveTable The Hive table to generate a command from
+   * @param columns The columns to be added
+   * @param snowflakeConf The configuration for Snowflake Hive metastore
+   *                      listener
+   * @return The commands generated, for example:
+   *         ALTER TABLE t1 ADD COLUMN c1 INT as (VALUE:c1::INT);
+   */
+  private static List<String> generateAddColumnsCommand(Table hiveTable,
+                                                        List<FieldSchema> columns,
+                                                        SnowflakeConf snowflakeConf)
+  {
+    Preconditions.checkNotNull(hiveTable);
+    Preconditions.checkNotNull(columns);
+    Preconditions.checkArgument(!columns.isEmpty());
+
+    int startingPosition = hiveTable.getSd().getCols().size() - columns.size();
+    Preconditions.checkArgument(startingPosition >= 0);
+
+    HiveToSnowflakeType.SnowflakeFileFormatType sfFileFmtType =
+        HiveToSnowflakeType.toSnowflakeFileFormatType(
+            hiveTable.getSd().getSerdeInfo().getSerializationLib(),
+            hiveTable.getSd().getInputFormat());
+
+    List<String> columnDefList = new ArrayList<>();
+    for (int i = 0; i < columns.size(); i++)
+    {
+      FieldSchema col = columns.get(i);
+      columnDefList.add(CreateExternalTable.generateColumnStr(
+          col,
+          startingPosition + i,
+          sfFileFmtType,
+          snowflakeConf));
+    }
+
+    return ImmutableList.of(
+        String.format(
+            "ALTER TABLE %s ADD COLUMN %s;",
+            hiveTable.getTableName(),
+            String.join(", COLUMN ", columnDefList)));
+  }
+
+  /**
+   * Generates commands to drop columns from a Snowflake table.
+   * @param hiveTable The Hive table to generate a command from
+   * @param columns The names of columns to drop
+   * @return The commands generated, for example:
+   *         ALTER TABLE t1 DROP COLUMN c1;
+   */
+  private static List<String> generateDropColumnsCommand(Table hiveTable,
+                                                         List<String> columns)
+  {
+    Preconditions.checkNotNull(hiveTable);
+    Preconditions.checkNotNull(columns);
+    Preconditions.checkArgument(!columns.isEmpty());
+
+    return ImmutableList.of(
+        String.format(
+            "ALTER TABLE %s DROP COLUMN %s;",
+            hiveTable.getTableName(),
+            String.join(", ", columns)));
+  }
+
+  /**
    * Generates the necessary commands on a Hive alter table event
    * @return The Snowflake commands generated
    * @throws SQLException Thrown when there was an error executing a Snowflake
@@ -48,19 +118,53 @@ public class AlterTable implements Command
   public List<String> generateCommands()
       throws SQLException, UnsupportedOperationException
   {
-    // TODO: Add support for other alter table commands, such as add columns
-    if (oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
-    {
-      return new CreateExternalTable(newHiveTable,
-                                     snowflakeConf,
-                                     hiveConf,
-                                     false // Do not replace table
-      ).generateCommands();
-    }
-    else
+    // TODO: Add support for other alter table commands, such as rename table
+    if (!oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
     {
       return new LogCommand("Received no-op alter table command.").generateCommands();
     }
+
+    // All supported alter table events (e.g. touch) generate create statements
+    List<String> commands = new CreateExternalTable(
+        oldHiveTable,
+        snowflakeConf,
+        hiveConf,
+        false // Do not replace table
+    ).generateCommands();
+
+    // If the columns are different, generate an add/drop column event
+    // TODO: Support more alter column events, including positional ones
+    // TODO: Make add/drop column events idempotent
+    // TODO: preserve column order
+    Set<String> columnNamesBefore = oldHiveTable.getSd().getCols()
+        .stream().map(FieldSchema::getName).collect(Collectors.toSet());
+    Set<String> columnNamesAfter = newHiveTable.getSd().getCols()
+        .stream().map(FieldSchema::getName).collect(Collectors.toSet());
+    if (columnNamesBefore.equals(columnNamesAfter))
+    {
+      return commands;
+    }
+
+    // Try to preserve the order of the columns (even for drop) for determinism
+    List<FieldSchema> addedColumns = newHiveTable.getSd().getCols().stream()
+        .filter(col -> !columnNamesBefore.contains(col.getName()))
+        .collect(Collectors.toList());
+    List<String> droppedColumns = oldHiveTable.getSd().getCols().stream()
+        .map(FieldSchema::getName)
+        .filter(col -> !columnNamesAfter.contains(col))
+        .collect(Collectors.toList());
+    if (!addedColumns.isEmpty())
+    {
+      commands.addAll(generateAddColumnsCommand(newHiveTable,
+                                                addedColumns,
+                                                snowflakeConf));
+    }
+    if (!droppedColumns.isEmpty())
+    {
+      commands.addAll(generateDropColumnsCommand(newHiveTable, droppedColumns));
+    }
+
+    return commands;
   }
 
   private final Table oldHiveTable;

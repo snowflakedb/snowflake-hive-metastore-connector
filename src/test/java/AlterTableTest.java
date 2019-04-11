@@ -102,4 +102,143 @@ public class AlterTableTest
                  "ALTER EXTERNAL TABLE t1 REFRESH;",
                  commands.get(2));
   }
+
+  /**
+   * A test for generating a alter (add columns) table command
+   * @throws Exception
+   */
+  @Test
+  public void addColumnsGenerateCommandTest() throws Exception
+  {
+    Table oldTable = TestUtil.initializeMockTable();
+    Table newTable = TestUtil.initializeMockTable();
+    newTable.getSd().getCols().add(new FieldSchema("new1", "int", null));
+    newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
+                                                          true, true, mockHandler);
+
+    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = alterTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE IF NOT EXISTS someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE EXTERNAL TABLE IF NOT EXISTS t1" +
+                     "(partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)" +
+                     "partition_type=user_specified location=@someDB__t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER TABLE t1 ADD " +
+                     "COLUMN new1 INT as (VALUE:c1::INT), " +
+                     "COLUMN new2 STRING as (VALUE:c2::STRING);",
+                 commands.get(2));
+  }
+
+  /**
+   * A test for generating a alter (drop columns) table command
+   * @throws Exception
+   */
+  @Test
+  public void dropColumnsGenerateCommandTest() throws Exception
+  {
+    Table oldTable = TestUtil.initializeMockTable();
+    oldTable.getSd().getCols().add(new FieldSchema("old1", "int", null));
+    oldTable.getSd().getCols().add(new FieldSchema("old2", "string", null));
+    Table newTable = TestUtil.initializeMockTable();
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
+                                                          true, true, mockHandler);
+
+    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = alterTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE IF NOT EXISTS someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE EXTERNAL TABLE IF NOT EXISTS t1" +
+                     "(old1 INT as (VALUE:c1::INT),old2 STRING as (VALUE:c2::STRING)," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)" +
+                     "partition_type=user_specified location=@someDB__t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER TABLE t1 DROP COLUMN old1, old2;",
+                 commands.get(2));
+  }
+
+  /**
+   * A test for generating an add command as well as a drop command
+   * @throws Exception
+   */
+  @Test
+  public void mixAddDropColumnsGenerateCommandTest() throws Exception
+  {
+    Table oldTable = TestUtil.initializeMockTable();
+    oldTable.getSd().getCols().add(new FieldSchema("old1", "int", null));
+    oldTable.getSd().getCols().add(new FieldSchema("old2", "string", null));
+    Table newTable = TestUtil.initializeMockTable();
+    newTable.getSd().getCols().add(new FieldSchema("new1", "int", null));
+    newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
+                                                          true, true, mockHandler);
+
+    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = alterTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE STAGE IF NOT EXISTS someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "CREATE EXTERNAL TABLE IF NOT EXISTS t1" +
+                     "(old1 INT as (VALUE:c1::INT),old2 STRING as (VALUE:c2::STRING)," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)" +
+                     "partition_type=user_specified location=@someDB__t1 " +
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER TABLE t1 ADD " +
+                     "COLUMN new1 INT as (VALUE:c1::INT), " +
+                     "COLUMN new2 STRING as (VALUE:c2::STRING);",
+                 commands.get(2));
+
+    assertEquals("generated alter table command does not match " +
+                     "expected alter table command",
+                 "ALTER TABLE t1 DROP COLUMN old1, old2;",
+                 commands.get(3));
+  }
 }
