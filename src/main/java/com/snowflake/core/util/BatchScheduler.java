@@ -90,16 +90,28 @@ public class BatchScheduler<T>
       return;
     }
 
-    log.info("Starting schedule executor");
+    if (scheduledFuture != null && scheduledFuture.isDone())
+    {
+      try
+      {
+        scheduledFuture.get();
+      }
+      catch (Exception ex)
+      {
+        log.warn("Scheduler had stopped earlier due to exception: " + ex);
+      }
+    }
+
     if (scheduledExecutor == null)
     {
+      log.info("Starting schedule executor");
       scheduledExecutor = Executors.newScheduledThreadPool(1);
     }
 
-    log.info(String.format("Instantiating thread pool with %s threads",
-                           threadPoolCount));
     if (threadPool == null)
     {
+      log.info(String.format("Instantiating thread pool with %s threads",
+                             threadPoolCount));
       threadPool = Executors.newFixedThreadPool(threadPoolCount);
     }
 
@@ -118,7 +130,7 @@ public class BatchScheduler<T>
       }
       catch (Exception ex)
       {
-        log.info("Hit exception running scheduled action: " + ex.getMessage());
+        log.warn("Hit exception running scheduled action: " + ex);
       }
     }, 0, batchingPeriod, TimeUnit.MILLISECONDS);
     log.info("Started scheduler");

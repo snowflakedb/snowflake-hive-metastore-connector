@@ -61,6 +61,11 @@ public class SnowflakeConf extends Configuration
         NOT_A_SF_JDBC_PROPERTY,
         "Forces the Hive listener to wait for Snowflake queries to execute " +
             "instead of queueing them for a background task."),
+    SNOWFLAKE_CLIENT_FORCE_NO_BATCH_REWRITE(
+        "snowflake.hive-metastore-listener.force-no-batch-rewrite",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Forces the Hive listener execute separate statements separately " +
+            "(i.e. without aggregating them)."),
     SNOWFLAKE_CLIENT_THREAD_COUNT(
         "snowflake.hive-metastore-listener.client-thread-count",
         NOT_A_SF_JDBC_PROPERTY,
@@ -90,8 +95,12 @@ public class SnowflakeConf extends Configuration
         "snowflake.hive-metastore-listener.data-column-casing",
         NOT_A_SF_JDBC_PROPERTY,
         "Specifies the casing for columns in the data. Acceptable values are " +
-            "UPPER, LOWER"
-    );
+            "UPPER, LOWER"),
+    SNOWFLAKE_BATCH_REWRITER_SIZE(
+        "snowflake.hive-metastore-listener.batch-rewriter-size",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Specifies how many batches can be rewritten at once")
+    ;
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

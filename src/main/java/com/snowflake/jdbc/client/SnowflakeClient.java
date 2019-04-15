@@ -6,6 +6,7 @@ package com.snowflake.jdbc.client;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.LogCommand;
+import com.snowflake.core.util.CommandBatchRewriter;
 import com.snowflake.core.util.CommandGenerator;
 import com.snowflake.core.util.BatchScheduler;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
@@ -18,6 +19,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Queue;
@@ -210,13 +212,56 @@ public class SnowflakeClient
                                       BatchScheduler<List<String>> scheduler,
                                       SnowflakeConf snowflakeConf)
   {
+    if (commandQueue.isEmpty())
+    {
+      // Exit early to avoid verbose periodic logging
+      return;
+    }
+
+    log.info("Processing messages in queue");
+
+    int batchRewriterSize = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_BATCH_REWRITER_SIZE.getVarname(),
+        500);
+    log.info("Number of queue messages to batch at once: " + batchRewriterSize);
+
     while(!commandQueue.isEmpty())
     {
-      List<String> commandList = commandQueue.remove();
+      List<List<String>> batches = new ArrayList<>();
+      while(!commandQueue.isEmpty() && batches.size() < batchRewriterSize)
+      {
+        batches.add(commandQueue.remove());
+      }
+      log.info("Dequeued batches: " + batches);
 
-      // TODO: Batch requests
-      scheduler.submitTask(() -> executeStatements(commandList, snowflakeConf));
+      boolean batchRewriterEnabled = !snowflakeConf.getBoolean(
+          SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_NO_BATCH_REWRITE.getVarname(),
+          false);
+      if (batchRewriterEnabled)
+      {
+        log.info("Rewriting batches...");
+        try
+        {
+          batches = CommandBatchRewriter.rewriteBatches(batches);
+          log.info("Rewritten batches: " + batches);
+        }
+        catch (Exception ex)
+        {
+          log.warn("Could not rewrite batches. Error: " + ex);
+        }
+      }
+      else
+      {
+        log.info("Rewriting disabled. Continuing without the batch rewrite");
+      }
+
+      batches.forEach(
+          batch -> scheduler.submitTask(() -> executeStatements(batch,
+                                                                snowflakeConf)));
+      log.info("Batches submitted.");
     }
+
+    log.info("Queue processed.");
   }
 
   /**

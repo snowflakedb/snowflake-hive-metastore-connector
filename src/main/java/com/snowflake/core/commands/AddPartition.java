@@ -67,6 +67,14 @@ public class AddPartition implements Command
     List<String> partitionDefinitions = new ArrayList<>();
     for (int i = 0; i < partitionKeys.size(); i++)
     {
+      // Snowflake does not allow __HIVE_DEFAULT_PARTITION__ for all data types,
+      // skip this partition instead.
+      if ("__HIVE_DEFAULT_PARTITION__".equalsIgnoreCase(partitionValues.get(i)))
+      {
+        return new LogCommand(
+            "Cannot add partition __HIVE_DEFAULT_PARTITION__. Skipping.").generateCommands().get(0);
+      }
+
       partitionDefinitions.add(String.format("%1$s='%2$s'",
                                              partitionKeys.get(i).getName(),
                                              partitionValues.get(i)));
