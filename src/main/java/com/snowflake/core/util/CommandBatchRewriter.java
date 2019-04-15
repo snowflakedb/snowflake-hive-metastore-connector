@@ -40,6 +40,7 @@ public class CommandBatchRewriter
   {
     BatchRewriter<String, String> rewriter = new BatchRewriter<>(ImmutableList.of(
         addPartitionRule,
+        dropPartitionRule,
         defaultRule));
     batches.forEach(rewriter::feedBatch);
     return rewriter.outputBatches();
@@ -78,6 +79,7 @@ public class CommandBatchRewriter
           if (contents1.equals(contents2))
           {
             // ADD PARTITION is idempotent, so we should combine two identical
+            // commands
             return contents1;
           }
 
@@ -90,6 +92,63 @@ public class CommandBatchRewriter
                 matcher1.group(1), // Table name
                 matcher1.group(2), // List of partitions
                 matcher2.group(2)  // Add more partitions
+          );
+        }
+
+        @Override
+        public boolean shouldStopAggregating(String contents)
+        {
+          // TODO: Make configurable
+          return contents.length() > 50000;
+        }
+      };
+
+  // Definition for a rule for aggregating DROP PARTITION commands
+  private static final AggregationRule<String, String> dropPartitionRule =
+      new AggregationRule<String, String>()
+      {
+        private Pattern regex = Pattern.compile(
+            "ALTER EXTERNAL TABLE ([^\\s]+) DROP PARTITION([^;]+);");
+
+        @Override
+        public boolean isApplicable(String contents)
+        {
+          // Check if it's a DROP PARTITION command
+          Matcher matcher = regex.matcher(contents);
+          return matcher.matches();
+        }
+
+        @Override
+        public String getAggregationKey(String contents)
+        {
+          // Generate a key that will be the same for other DROP PARTITION
+          // commands on the same table
+          Matcher matcher = regex.matcher(contents);
+
+          Preconditions.checkState(matcher.matches());
+          return String.format("ALTER EXTERNAL TABLE %s DROP PARTITION ...",
+                               matcher.group(1));
+        }
+
+        @Override
+        public String applyAggregation(String contents1, String contents2)
+        {
+          if (contents1.equals(contents2))
+          {
+            // DROP PARTITION is idempotent, so we should combine two identical
+            // commands
+            return contents1;
+          }
+
+          Matcher matcher1 = regex.matcher(contents1);
+          Matcher matcher2 = regex.matcher(contents2);
+
+          Preconditions.checkState(matcher1.matches() && matcher2.matches());
+          return String.format(
+              "ALTER EXTERNAL TABLE %s DROP PARTITION%s, %s;",
+              matcher1.group(1), // Table name
+              matcher1.group(2), // List of partitions
+              matcher2.group(2)  // Add more partitions
           );
         }
 

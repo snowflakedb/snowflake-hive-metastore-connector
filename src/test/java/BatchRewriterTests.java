@@ -262,4 +262,45 @@ public class BatchRewriterTests
 
     Assert.assertEquals(1, commands.size());
   }
+
+  /**
+   * Basic test for drop partitions by rewriting the following:
+   *  a. drop partition 1
+   *  b. drop partition 1
+   *  c. drop partition 2 -> drop partition 3
+   *
+   * This should be rewritten as:
+   * drop three partitions
+   */
+  @Test
+  public void dropPartitionsBatchRewriterTests() throws Exception
+  {
+    String dropPartition1 = "ALTER EXTERNAL TABLE t1 DROP PARTITION" +
+        " LOCATION 'sub/path1' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */;";
+    String dropPartition2 = "ALTER EXTERNAL TABLE t1 DROP PARTITION" +
+        " LOCATION 'sub/path2' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */;";
+    String dropPartition3 = "ALTER EXTERNAL TABLE t1 DROP PARTITION" +
+        " LOCATION 'sub/path3' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */;";
+
+    List<String> batch1 = ImmutableList.of(dropPartition1);
+    List<String> batch2 = ImmutableList.of(dropPartition1);
+    List<String> batch3 = ImmutableList.of(dropPartition2, dropPartition3);
+
+    List<List<String>> commands = CommandBatchRewriter
+        .rewriteBatches(ImmutableList.of(
+            batch1,
+            batch2,
+            batch3));
+
+    String expectedBatchedDropPartition = "ALTER EXTERNAL TABLE t1 DROP PARTITION " +
+        "LOCATION 'sub/path1' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */,  " +
+        "LOCATION 'sub/path2' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */,  " +
+        "LOCATION 'sub/path3' /* TABLE LOCATION = 's3n://bucketname/path/to/table' */;";
+
+    Assert.assertEquals(1, commands.size());
+
+    List<String> batch = commands.get(0);
+    Assert.assertEquals(1, batch.size());
+    Assert.assertEquals(expectedBatchedDropPartition, batch.get(0));
+  }
 }
