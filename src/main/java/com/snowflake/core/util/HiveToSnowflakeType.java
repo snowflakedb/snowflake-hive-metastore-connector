@@ -3,7 +3,9 @@
  */
 package com.snowflake.core.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +51,20 @@ public class HiveToSnowflakeType
       .build();
 
   /**
+   * The Hive data types with specifications, e.g. precision/scale or length
+   */
+  public static final ImmutableSet<String> hiveTypesWithSpecifications =
+      new ImmutableSet.Builder<String>()
+          .add("DECIMAL")
+          .add("CHAR")
+          .add("VARCHAR")
+          .build();
+
+  private static final Pattern hiveTypeWithSpecRegex = Pattern.compile(
+      "(" + String.join("|", hiveTypesWithSpecifications)
+          + ")\\(([^)]+)\\)");
+
+  /**
    * The file format types suppported by Snowflake
    */
   public enum SnowflakeFileFormatType
@@ -78,6 +94,21 @@ public class HiveToSnowflakeType
    */
   public static String toSnowflakeColumnDataType(String hiveType)
   {
+    Matcher hiveTypeWithSpecMatcher = hiveTypeWithSpecRegex.matcher(hiveType.toUpperCase());
+    if (hiveTypeWithSpecMatcher.matches())
+    {
+      String hiveTypeWithoutSpec = hiveTypeWithSpecMatcher.group(1);
+      String spec = hiveTypeWithSpecMatcher.group(2);
+      Preconditions.checkNotNull(hiveTypeWithoutSpec);
+      Preconditions.checkNotNull(spec);
+      Preconditions.checkState(hiveToSnowflakeDataTypeMap.containsKey(hiveTypeWithoutSpec));
+
+      return String.format("%s(%s)",
+                           hiveToSnowflakeDataTypeMap.get(hiveTypeWithoutSpec),
+                           spec);
+    }
+
+
     if (hiveToSnowflakeDataTypeMap.containsKey(hiveType.toUpperCase()))
     {
       return hiveToSnowflakeDataTypeMap.get(hiveType.toUpperCase());
