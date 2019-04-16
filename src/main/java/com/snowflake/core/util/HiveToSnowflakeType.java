@@ -133,7 +133,8 @@ public class HiveToSnowflakeType
     switch (sfFileFmtType)
     {
       case CSV:
-        String fieldDelimiter = serDeParams.getOrDefault("field.delim", null);
+        String fieldDelimiter = serDeParams.getOrDefault("field.delim",
+                                                         serDeParams.getOrDefault("separatorChar", null));
         if (fieldDelimiter != null)
         {
           snowflakeFileFormatOptions.put("FIELD_DELIMITER",
@@ -147,7 +148,8 @@ public class HiveToSnowflakeType
                                          String.format("'%s'", lineDelimiter));
         }
 
-        String escape = serDeParams.getOrDefault("escape.delim", null);
+        String escape = serDeParams.getOrDefault("escape.delim",
+                                                 serDeParams.getOrDefault("escapeChar", null));
         if (escape != null)
         {
           snowflakeFileFormatOptions.put("ESCAPE",
