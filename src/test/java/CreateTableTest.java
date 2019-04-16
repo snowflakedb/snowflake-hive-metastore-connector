@@ -460,6 +460,50 @@ public class CreateTableTest
   }
 
   /**
+   * A test for generating a create table command for a table with a column
+   * of type VARCHAR(200), CHAR(200), DECIMAL(38,0)
+   *
+   * @throws Exception
+   */
+  @Test
+  public void varcharCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "varchar(200)", null),
+        new FieldSchema("col2", "char(200)", null),
+        new FieldSchema("col3", "decimal(38,0)", null)));
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(" +
+                     "col1 VARCHAR(200) as (VALUE:c1::VARCHAR(200))," +
+                     "col2 CHAR(200) as (VALUE:c2::CHAR(200))," +
+                     "col3 DECIMAL(38,0) as (VALUE:c3::DECIMAL(38,0))," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
+  }
+
+  /**
    * Tests the error handling of the client during a create table event
    * @throws Exception
    */
