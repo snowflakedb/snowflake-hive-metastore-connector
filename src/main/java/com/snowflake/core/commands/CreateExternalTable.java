@@ -142,7 +142,7 @@ public class CreateExternalTable implements Command
         this.canReplace,
         stageName,
         HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
-        String.format("STORAGE_INTEGRATION='%s'", integration));
+        String.format("STORAGE_INTEGRATION=%s", integration));
 
     return Pair.of(command, stageName);
   }
