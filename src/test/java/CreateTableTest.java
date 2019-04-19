@@ -446,7 +446,7 @@ public class CreateTableTest
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
-                     "STORAGE_INTEGRATION='anIntegration';",
+                     "STORAGE_INTEGRATION=anIntegration;",
                  commands.get(0));
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
