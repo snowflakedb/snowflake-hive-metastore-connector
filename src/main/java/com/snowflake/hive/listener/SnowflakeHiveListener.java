@@ -102,7 +102,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     if (partitionEvent.getStatus())
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+                                                        snowflakeConf,
+                                                        false);
     }
     else
     {
@@ -123,7 +124,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+                                                        snowflakeConf,
+                                                        false);
     }
     else
     {
@@ -163,7 +165,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+                                                        snowflakeConf,
+                                                        false);
     }
     else
     {

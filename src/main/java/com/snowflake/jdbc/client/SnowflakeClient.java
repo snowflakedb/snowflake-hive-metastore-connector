@@ -49,11 +49,13 @@ public class SnowflakeClient
    * 3. Run the queries on Snowflake
    * @param event - the hive event
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
-   *                        listener
+   * @param forceSynchronous - whether to force the execution of statements
+   *                           to be synchronous
    */
   public static void createAndExecuteEventForSnowflake(
       ListenerEvent event,
-      SnowflakeConf snowflakeConf)
+      SnowflakeConf snowflakeConf,
+      boolean forceSynchronous)
   {
     // Obtains the proper command
     log.info("Creating the Snowflake command");
@@ -76,8 +78,8 @@ public class SnowflakeClient
       commandList = new LogCommand(e).generateCommands();
     }
 
-    boolean backgroundTaskEnabled = !snowflakeConf.getBoolean(
-        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS.getVarname(), false);
+    boolean backgroundTaskEnabled = !(forceSynchronous || snowflakeConf.getBoolean(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS.getVarname(), false));
     if (backgroundTaskEnabled)
     {
       initScheduler(snowflakeConf);
@@ -87,6 +89,18 @@ public class SnowflakeClient
     {
       executeStatements(commandList, snowflakeConf);
     }
+  }
+
+  /**
+   * Overload. By default, forces execution of statements to be synchronous.
+   * @param event - the hive event
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   */
+  public static void createAndExecuteEventForSnowflake(
+      ListenerEvent event,
+      SnowflakeConf snowflakeConf)
+  {
+    createAndExecuteEventForSnowflake(event, snowflakeConf, true);
   }
 
   /**
