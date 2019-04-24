@@ -105,7 +105,7 @@ public class HiveToSnowflakeType
 
       return String.format("%s(%s)",
                            hiveToSnowflakeDataTypeMap.get(hiveTypeWithoutSpec),
-                           spec);
+                           StringUtil.escapeSqlDataTypeSpec(spec));
     }
 
 
@@ -168,23 +168,26 @@ public class HiveToSnowflakeType
                                                          serDeParams.getOrDefault("separatorChar", null));
         if (fieldDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("FIELD_DELIMITER",
-                                         String.format("'%s'", fieldDelimiter));
+          snowflakeFileFormatOptions.put(
+              "FIELD_DELIMITER",
+              String.format("'%s'", StringUtil.escapeSqlText(fieldDelimiter)));
         }
 
         String lineDelimiter = serDeParams.getOrDefault("line.delim", null);
         if (lineDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("RECORD_DELIMITER",
-                                         String.format("'%s'", lineDelimiter));
+          snowflakeFileFormatOptions.put(
+              "RECORD_DELIMITER",
+              String.format("'%s'", StringUtil.escapeSqlText(lineDelimiter)));
         }
 
         String escape = serDeParams.getOrDefault("escape.delim",
                                                  serDeParams.getOrDefault("escapeChar", null));
         if (escape != null)
         {
-          snowflakeFileFormatOptions.put("ESCAPE",
-                                         String.format("'%s'", escape));
+          snowflakeFileFormatOptions.put(
+              "ESCAPE",
+              String.format("'%s'", StringUtil.escapeSqlText(escape)));
         }
         break;
       case PARQUET:

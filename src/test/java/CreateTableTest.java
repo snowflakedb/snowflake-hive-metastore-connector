@@ -94,9 +94,9 @@ public class CreateTableTest
     Table table = TestUtil.initializeMockTable();
 
     Map<String, String> serDeParams = new HashMap<>();
-    serDeParams.put("field.delim", "','");
-    serDeParams.put("line.delim", "'\n'");
-    serDeParams.put("escape.delim", "'$'");
+    serDeParams.put("field.delim", ",");
+    serDeParams.put("line.delim", "\n");
+    serDeParams.put("escape.delim", "$");
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
@@ -120,7 +120,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified location=@someDB__t1 " +
-                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'') " +
+                     "file_format=(RECORD_DELIMITER='\\n',FIELD_DELIMITER=',',TYPE=CSV,ESCAPE='$') " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
   }
