@@ -61,4 +61,44 @@ public class StringUtil
 
     return Optional.of(relativeUri.toString());
   }
+
+  /**
+   * Helper method to escape SQL text
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlText(String str)
+  {
+    return str.replace("'", "''").replace("\\", "\\\\");
+  }
+
+  /**
+   * Helper method to escape SQL text that's an identifier
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlIdentifier(String str)
+  {
+    return str.replace(" ", "").replace("\\", "\\\\");
+  }
+
+  /**
+   * Helper method to escape text in a SQL comment
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlComment(String str)
+  {
+    return str.replace("*/", "* /");
+  }
+
+  /**
+   * Helper method to escape text that's in a data type spec
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlDataTypeSpec(String str)
+  {
+    return str.replace(")", "").replace("(", "");
+  }
 }

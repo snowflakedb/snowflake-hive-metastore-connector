@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.util.HiveToSnowflakeType;
+import com.snowflake.core.util.StringUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -83,7 +84,7 @@ public class AlterTable implements Command
     return ImmutableList.of(
         String.format(
             "ALTER TABLE %s ADD COLUMN %s;",
-            hiveTable.getTableName(),
+            StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
             String.join(", COLUMN ", columnDefList)));
   }
 
@@ -104,8 +105,11 @@ public class AlterTable implements Command
     return ImmutableList.of(
         String.format(
             "ALTER TABLE %s DROP COLUMN %s;",
-            hiveTable.getTableName(),
-            String.join(", ", columns)));
+            StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
+            String.join(", ",
+                        columns.stream()
+                            .map(StringUtil::escapeSqlIdentifier)
+                            .collect(Collectors.toList()))));
   }
 
   /**

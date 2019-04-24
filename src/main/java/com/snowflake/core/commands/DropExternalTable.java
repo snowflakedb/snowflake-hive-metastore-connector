@@ -5,6 +5,7 @@ package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
+import com.snowflake.core.util.StringUtil;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 
@@ -41,7 +42,7 @@ public class DropExternalTable implements Command
 
     // drop table command
     sb.append("DROP EXTERNAL TABLE IF EXISTS ");
-    sb.append(hiveTable.getTableName());
+    sb.append(StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
     sb.append(";");
 
     return sb.toString();

@@ -46,9 +46,9 @@ public class DropPartition implements Command
             "DROP PARTITION " +
             "LOCATION '%2$s' " +
             "/* TABLE LOCATION = '%3$s' */;",
-        this.hiveTable.getTableName(),
-        StringUtil.relativizePartitionURI(hiveTable, partition),
-        hiveTable.getSd().getLocation());
+        StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
+        StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)),
+        StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
   }
 
   /**

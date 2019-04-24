@@ -75,9 +75,10 @@ public class AddPartition implements Command
             "Cannot add partition __HIVE_DEFAULT_PARTITION__. Skipping.").generateCommands().get(0);
       }
 
-      partitionDefinitions.add(String.format("%1$s='%2$s'",
-                                             partitionKeys.get(i).getName(),
-                                             partitionValues.get(i)));
+      partitionDefinitions.add(
+          String.format("%1$s='%2$s'",
+                        StringUtil.escapeSqlIdentifier(partitionKeys.get(i).getName()),
+                        StringUtil.escapeSqlText(partitionValues.get(i))));
     }
 
     return String.format(
@@ -85,10 +86,10 @@ public class AddPartition implements Command
         "ADD PARTITION(%2$s) " +
         "LOCATION '%3$s' " +
         "/* TABLE LOCATION = '%4$s' */;",
-        hiveTable.getTableName(),
+        StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
         String.join(",", partitionDefinitions),
-        StringUtil.relativizePartitionURI(hiveTable, partition),
-        hiveTable.getSd().getLocation());
+        StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)),
+        StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
   }
 
   /**

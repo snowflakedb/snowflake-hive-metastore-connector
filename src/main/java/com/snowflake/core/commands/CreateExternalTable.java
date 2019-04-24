@@ -77,8 +77,9 @@ public class CreateExternalTable implements Command
   {
     return String.format(
         "%s__%s", // double underscore
-        snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(), null),
-        hiveTable.getTableName());
+        StringUtil.escapeSqlIdentifier(snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(),
+                                                         null)),
+        StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
   }
 
   /**
@@ -100,8 +101,8 @@ public class CreateExternalTable implements Command
     return String.format("CREATE %sSTAGE %s%s URL='%s'\n%s;",
                            (canReplace ? "OR REPLACE " : ""),
                            (canReplace ? "" : "IF NOT EXISTS "),
-                           stageName,
-                           location,
+                           StringUtil.escapeSqlIdentifier(stageName),
+                           StringUtil.escapeSqlText(location),
                            extraArguments);
   }
 
@@ -142,7 +143,7 @@ public class CreateExternalTable implements Command
         this.canReplace,
         stageName,
         HiveToSnowflakeType.toSnowflakeURL(hiveUrl),
-        String.format("STORAGE_INTEGRATION=%s", integration));
+        String.format("STORAGE_INTEGRATION=%s", StringUtil.escapeSqlIdentifier(integration)));
 
     return Pair.of(command, stageName);
   }
@@ -166,7 +167,7 @@ public class CreateExternalTable implements Command
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
     StringBuilder sb = new StringBuilder();
-    sb.append(columnSchema.getName());
+    sb.append(StringUtil.escapeSqlIdentifier(columnSchema.getName()));
     sb.append(" ");
     sb.append(snowflakeType);
     sb.append(" as (VALUE:");
@@ -192,7 +193,7 @@ public class CreateExternalTable implements Command
       {
         columnName = columnName.toLowerCase();
       }
-      sb.append(columnName);
+      sb.append(StringUtil.escapeSqlIdentifier(columnName));
     }
     sb.append("::");
     sb.append(snowflakeType);
@@ -212,11 +213,11 @@ public class CreateExternalTable implements Command
     String snowflakeType = HiveToSnowflakeType
         .toSnowflakeColumnDataType(columnSchema.getType());
     StringBuilder sb = new StringBuilder();
-    sb.append(columnSchema.getName());
+    sb.append(StringUtil.escapeSqlIdentifier(columnSchema.getName()));
     sb.append(" ");
     sb.append(snowflakeType);
     sb.append(" as (parse_json(metadata$external_table_partition):");
-    sb.append(columnSchema.getName().toUpperCase());
+    sb.append(StringUtil.escapeSqlIdentifier(columnSchema.getName().toUpperCase()));
     sb.append("::");
     sb.append(snowflakeType);
     sb.append(')');
@@ -245,7 +246,7 @@ public class CreateExternalTable implements Command
     sb.append(String.format("CREATE %sEXTERNAL TABLE %s",
                             (canReplace ? "OR REPLACE " : ""),
                             (canReplace ? "" : "IF NOT EXISTS ")));
-    sb.append(hiveTable.getTableName());
+    sb.append(StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
 
     // columns
     List<FieldSchema> cols = hiveTable.getSd().getCols();
@@ -313,7 +314,7 @@ public class CreateExternalTable implements Command
 
     // location
     sb.append("location=@");
-    sb.append(location + " ");
+    sb.append(StringUtil.escapeSqlIdentifier(location) + " ");
 
     // file_format
     sb.append("file_format=");
@@ -334,7 +335,8 @@ public class CreateExternalTable implements Command
   {
     // Go to Snowflake to fetch the stage location. Note: Case-insensitive
     ResultSet result = SnowflakeClient.executeStatement(
-        String.format("SHOW STAGES LIKE '%s';", stageName), snowflakeConf);
+        String.format("SHOW STAGES LIKE '%s';", StringUtil.escapeSqlText(stageName)),
+        snowflakeConf);
 
     // Find a column called 'url', which contains the stage location. There
     // should be exactly one row.
@@ -433,7 +435,7 @@ public class CreateExternalTable implements Command
     {
       // Refresh implicitly partitioned tables after creation
       queryList.add(String.format("ALTER EXTERNAL TABLE %s REFRESH;",
-                                  hiveTable.getTableName()));
+                                  StringUtil.escapeSqlIdentifier(hiveTable.getTableName())));
     }
 
     return queryList;

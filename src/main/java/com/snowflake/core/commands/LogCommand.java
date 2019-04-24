@@ -5,6 +5,7 @@ package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.snowflake.core.util.StringUtil;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -48,7 +49,7 @@ public class LogCommand implements Command
   {
     return ImmutableList.<String>builder()
         .add(String.format("SELECT NULL /* %s */;",
-                          this.log.replace("*/", "* /")))
+                           StringUtil.escapeSqlComment(log)))
         .build().asList();
   }
 
