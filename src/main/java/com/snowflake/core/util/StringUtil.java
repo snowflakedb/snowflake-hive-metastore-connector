@@ -6,6 +6,7 @@ package com.snowflake.core.util;
 import java.net.URI;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
@@ -69,7 +70,7 @@ public class StringUtil
    */
   public static String escapeSqlText(String str)
   {
-    return str.replace("'", "''").replace("\\", "\\\\");
+    return StringEscapeUtils.escapeJava(str.replace("'", "''"));
   }
 
   /**
@@ -79,7 +80,7 @@ public class StringUtil
    */
   public static String escapeSqlIdentifier(String str)
   {
-    return str.replace(" ", "").replace("\\", "\\\\");
+    return StringEscapeUtils.escapeJava(str.replace(" ", ""));
   }
 
   /**
