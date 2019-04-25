@@ -3,6 +3,7 @@
  */
 package com.snowflake.core.util;
 
+import com.google.common.base.Preconditions;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,33 +29,44 @@ public class BatchScheduler<T>
   private static final Logger log =
       LoggerFactory.getLogger(SnowflakeHiveListener.class);
 
+  // Number of threads to use for the executor service of the scheduler
   private int threadPoolCount;
 
-  private int batchingPeriod;
+  // The amount of time between processing messages in the queue
+  private int batchingPeriodMs;
 
+  // Method that specifies what to do with the messages in the queue
   private BiConsumer<Queue<T>, BatchScheduler<T>> processMessages;
 
-  private ConcurrentLinkedQueue<T> messageQueue = new ConcurrentLinkedQueue<>();
+  // The queue of messages yet to be processed
+  private ConcurrentLinkedQueue<T> messageQueue;
 
+  // Periodic executor service that delegates work to the worker pool
   private ScheduledExecutorService scheduledExecutor = null;
 
+  // The future associated with the scheduled executor
   private ScheduledFuture scheduledFuture = null;
 
+  // The worker pool
   private ExecutorService threadPool = null;
 
   /**
    * Constructor for the scheduler
    * @param threadPoolCount Number of worker threads to use
-   * @param batchingPeriod Duration of time between processing the batches
+   * @param batchingPeriodMs Duration of time between processing the batches
    * @param processMessages Method that processes the messages, if given the
    *                        message queue
    */
   public BatchScheduler(int threadPoolCount,
-                        int batchingPeriod,
+                        int batchingPeriodMs,
                         BiConsumer<Queue<T>, BatchScheduler<T>> processMessages)
   {
+    Preconditions.checkArgument(threadPoolCount > 0);
+    Preconditions.checkArgument(batchingPeriodMs > 0);
+    Preconditions.checkNotNull(processMessages);
+    this.messageQueue = new ConcurrentLinkedQueue<>();
     this.threadPoolCount = threadPoolCount;
-    this.batchingPeriod = batchingPeriod;
+    this.batchingPeriodMs = batchingPeriodMs;
     this.processMessages = processMessages;
   }
 
@@ -64,6 +76,7 @@ public class BatchScheduler<T>
    */
   public void enqueueMessage(T message)
   {
+    Preconditions.checkNotNull(message);
     log.info("Enqueueing message. Current count: " + messageQueue.size());
     messageQueue.add(message);
     startIfNotStarted();
@@ -75,6 +88,7 @@ public class BatchScheduler<T>
    */
   public void submitTask(Runnable task)
   {
+    Preconditions.checkNotNull(task);
     log.info("Task received");
     threadPool.submit(task);
   }
@@ -116,12 +130,12 @@ public class BatchScheduler<T>
     }
 
     log.info(String.format("Starting schedule with a batching period of %s ms",
-                           batchingPeriod));
+                           batchingPeriodMs));
 
     // Notes:
     //  - Executes a recurring action in a timely fashion (no drift)
     //  - If an action takes longer than the period, all future actions are late
-    //  - An exception will stop future actions
+    //  - If uncaught, an exception would stop future actions
     scheduledFuture = scheduledExecutor.scheduleAtFixedRate(() ->
     {
       try
@@ -132,7 +146,7 @@ public class BatchScheduler<T>
       {
         log.warn("Hit exception running scheduled action: " + ex);
       }
-    }, 0, batchingPeriod, TimeUnit.MILLISECONDS);
+    }, 0, batchingPeriodMs, TimeUnit.MILLISECONDS);
     log.info("Started scheduler");
   }
 }

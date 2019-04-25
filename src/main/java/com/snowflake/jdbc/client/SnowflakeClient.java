@@ -209,10 +209,10 @@ public class SnowflakeClient
     int numThreads = snowflakeConf.getInt(
         SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_THREAD_COUNT.getVarname(), 8);
 
-    int batchingPeriod = snowflakeConf.getInt(
+    int batchingPeriodMs = snowflakeConf.getInt(
         SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_BATCHING_PERIOD.getVarname(), 1000);
 
-    scheduler = new BatchScheduler<>(numThreads, batchingPeriod,
+    scheduler = new BatchScheduler<>(numThreads, batchingPeriodMs,
         (q, s) -> processMessages(q, s, snowflakeConf));
   }
 
