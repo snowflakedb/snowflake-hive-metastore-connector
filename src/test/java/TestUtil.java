@@ -57,6 +57,9 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.getInt("snowflake.hive-metastore-listener.retry.count", 3))
         .thenReturn(3);
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.data-column-casing", "NONE"))
+        .thenReturn("NONE");
     return mockConfig;
   }
 
@@ -68,6 +71,7 @@ public class TestUtil
     Table table = new Table();
 
     table.setTableName("t1");
+    table.setDbName("someDB");
     table.setPartitionKeys(Arrays.asList(
         new FieldSchema("partcol", "int", null),
         new FieldSchema("name", "string", null)));

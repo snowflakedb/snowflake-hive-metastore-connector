@@ -4,6 +4,8 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.snowflake.conf.SnowflakeConf;
+import com.snowflake.core.util.StringUtil;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 
@@ -15,11 +17,18 @@ import java.util.List;
  */
 public class DropExternalTable implements Command
 {
-
-  public DropExternalTable(DropTableEvent dropTableEvent)
+  /**
+   * Creates a DropExternalTable command
+   * @param dropTableEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  public DropExternalTable(DropTableEvent dropTableEvent,
+                           SnowflakeConf snowflakeConf)
   {
     Preconditions.checkNotNull(dropTableEvent);
     this.hiveTable = Preconditions.checkNotNull(dropTableEvent.getTable());
+    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
   }
 
   /**
@@ -33,7 +42,7 @@ public class DropExternalTable implements Command
 
     // drop table command
     sb.append("DROP EXTERNAL TABLE IF EXISTS ");
-    sb.append(hiveTable.getTableName());
+    sb.append(StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
     sb.append(";");
 
     return sb.toString();
@@ -50,7 +59,7 @@ public class DropExternalTable implements Command
 
     // drop stage command
     sb.append("DROP STAGE IF EXISTS ");
-    sb.append(hiveTable.getTableName());
+    sb.append(CreateExternalTable.generateStageName(hiveTable, snowflakeConf));
     sb.append(";");
 
     return sb.toString();
@@ -75,4 +84,6 @@ public class DropExternalTable implements Command
   }
 
   private final Table hiveTable;
+
+  private final SnowflakeConf snowflakeConf;
 }

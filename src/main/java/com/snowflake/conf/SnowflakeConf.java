@@ -32,6 +32,8 @@ public class SnowflakeConf extends Configuration
       "The password to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_ACCOUNT("snowflake.jdbc.account", "account",
       "The account to use to connect to Snowflake."),
+    SNOWFLAKE_JDBC_ROLE("snowflake.jdbc.role", "role",
+      "The role to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_DB("snowflake.jdbc.db", "db",
       "The database to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_SCHEMA("snowflake.jdbc.schema", "schema",
@@ -68,7 +70,13 @@ public class SnowflakeConf extends Configuration
         "snowflake.hive-metastore-listener.database-filter-regex",
         NOT_A_SF_JDBC_PROPERTY,
         "A regex to filter events with. Databases with names that match " +
-            "this regex will be be ignored.");
+            "this regex will be be ignored."),
+    SNOWFLAKE_DATA_COLUMN_CASING(
+        "snowflake.hive-metastore-listener.data-column-casing",
+        NOT_A_SF_JDBC_PROPERTY,
+        "Specifies the casing for columns in the data. Acceptable values are " +
+            "UPPER, LOWER"
+    );
 
     public static final Map<String, ConfVars> BY_VARNAME =
         Arrays.stream(ConfVars.values())

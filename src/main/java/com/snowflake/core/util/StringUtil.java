@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ */
 package com.snowflake.core.util;
 
 import java.net.URI;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 
@@ -57,5 +61,45 @@ public class StringUtil
     }
 
     return Optional.of(relativeUri.toString());
+  }
+
+  /**
+   * Helper method to escape SQL text
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlText(String str)
+  {
+    return StringEscapeUtils.escapeJava(str.replace("'", "''"));
+  }
+
+  /**
+   * Helper method to escape SQL text that's an identifier
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlIdentifier(String str)
+  {
+    return StringEscapeUtils.escapeJava(str.replace(" ", ""));
+  }
+
+  /**
+   * Helper method to escape text in a SQL comment
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlComment(String str)
+  {
+    return str.replace("*/", "* /");
+  }
+
+  /**
+   * Helper method to escape text that's in a data type spec
+   * @param str the string to escape
+   * @return the escaped string
+   */
+  public static String escapeSqlDataTypeSpec(String str)
+  {
+    return str.replace(")", "").replace("(", "");
   }
 }

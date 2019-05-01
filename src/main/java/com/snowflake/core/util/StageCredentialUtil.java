@@ -84,8 +84,9 @@ public class StageCredentialUtil
           }
 
           return String.format(
-              "credentials=(AWS_KEY_ID='%s'\n" +
-                  "AWS_SECRET_KEY='%s')", accessKey, secretKey);
+              "credentials=(AWS_KEY_ID='%s'\nAWS_SECRET_KEY='%s')",
+              StringUtil.escapeSqlText(accessKey),
+              StringUtil.escapeSqlText(secretKey));
 
         default:
           throw new UnsupportedOperationException("Unsupported stage type: " +

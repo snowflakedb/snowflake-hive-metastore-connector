@@ -3,7 +3,9 @@
  */
 package com.snowflake.core.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,9 +51,23 @@ public class HiveToSnowflakeType
       .build();
 
   /**
+   * The Hive data types with specifications, e.g. precision/scale or length
+   */
+  public static final ImmutableSet<String> hiveTypesWithSpecifications =
+      new ImmutableSet.Builder<String>()
+          .add("DECIMAL")
+          .add("CHAR")
+          .add("VARCHAR")
+          .build();
+
+  private static final Pattern hiveTypeWithSpecRegex = Pattern.compile(
+      "(" + String.join("|", hiveTypesWithSpecifications)
+          + ")\\(([^)]+)\\)");
+
+  /**
    * The file format types suppported by Snowflake
    */
-  public enum SnowflakeFileFormatTypes
+  public enum SnowflakeFileFormatType
   {
     CSV,
     JSON,
@@ -67,7 +83,7 @@ public class HiveToSnowflakeType
   private static final Pattern sfFileFmtTypeRegex = Pattern.compile(
       "(" + String.join(
           "|",
-          Arrays.stream(SnowflakeFileFormatTypes.values())
+          Arrays.stream(SnowflakeFileFormatType.values())
               .map(Enum::name).collect(Collectors.toList())) +
       ")");
 
@@ -78,6 +94,21 @@ public class HiveToSnowflakeType
    */
   public static String toSnowflakeColumnDataType(String hiveType)
   {
+    Matcher hiveTypeWithSpecMatcher = hiveTypeWithSpecRegex.matcher(hiveType.toUpperCase());
+    if (hiveTypeWithSpecMatcher.matches())
+    {
+      String hiveTypeWithoutSpec = hiveTypeWithSpecMatcher.group(1);
+      String spec = hiveTypeWithSpecMatcher.group(2);
+      Preconditions.checkNotNull(hiveTypeWithoutSpec);
+      Preconditions.checkNotNull(spec);
+      Preconditions.checkState(hiveToSnowflakeDataTypeMap.containsKey(hiveTypeWithoutSpec));
+
+      return String.format("%s(%s)",
+                           hiveToSnowflakeDataTypeMap.get(hiveTypeWithoutSpec),
+                           StringUtil.escapeSqlDataTypeSpec(spec));
+    }
+
+
     if (hiveToSnowflakeDataTypeMap.containsKey(hiveType.toUpperCase()))
     {
       return hiveToSnowflakeDataTypeMap.get(hiveType.toUpperCase());
@@ -118,9 +149,10 @@ public class HiveToSnowflakeType
    * @throws UnsupportedOperationException Thrown when the input is invalid or
    *                                       unsupported
    */
-  public static String toSnowflakeFileFormat(SnowflakeFileFormatTypes sfFileFmtType,
-                                             SerDeInfo serDeInfo,
-                                             Map<String, String> tableProps)
+  public static String toSnowflakeFileFormat(
+      SnowflakeFileFormatType sfFileFmtType,
+      SerDeInfo serDeInfo,
+      Map<String, String> tableProps)
       throws UnsupportedOperationException
   {
     Map<String, String> snowflakeFileFormatOptions = new HashMap<>();
@@ -132,25 +164,30 @@ public class HiveToSnowflakeType
     switch (sfFileFmtType)
     {
       case CSV:
-        String fieldDelimiter = serDeParams.getOrDefault("field.delim", null);
+        String fieldDelimiter = serDeParams.getOrDefault("field.delim",
+                                                         serDeParams.getOrDefault("separatorChar", null));
         if (fieldDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("FIELD_DELIMITER",
-                                         String.format("'%s'", fieldDelimiter));
+          snowflakeFileFormatOptions.put(
+              "FIELD_DELIMITER",
+              String.format("'%s'", StringUtil.escapeSqlText(fieldDelimiter)));
         }
 
         String lineDelimiter = serDeParams.getOrDefault("line.delim", null);
         if (lineDelimiter != null)
         {
-          snowflakeFileFormatOptions.put("RECORD_DELIMITER",
-                                         String.format("'%s'", lineDelimiter));
+          snowflakeFileFormatOptions.put(
+              "RECORD_DELIMITER",
+              String.format("'%s'", StringUtil.escapeSqlText(lineDelimiter)));
         }
 
-        String escape = serDeParams.getOrDefault("escape.delim", null);
+        String escape = serDeParams.getOrDefault("escape.delim",
+                                                 serDeParams.getOrDefault("escapeChar", null));
         if (escape != null)
         {
-          snowflakeFileFormatOptions.put("ESCAPE",
-                                         String.format("'%s'", escape));
+          snowflakeFileFormatOptions.put(
+              "ESCAPE",
+              String.format("'%s'", StringUtil.escapeSqlText(escape)));
         }
         break;
       case PARQUET:
@@ -193,8 +230,8 @@ public class HiveToSnowflakeType
    * @throws UnsupportedOperationException Thrown when the SerDe is invalid or
    *                                       unsupported.
    */
-  public static SnowflakeFileFormatTypes toSnowflakeFileFormatType(String serDeLib,
-                                                                   String hiveFileFormat)
+  public static SnowflakeFileFormatType toSnowflakeFileFormatType(String serDeLib,
+                                                                  String hiveFileFormat)
       throws UnsupportedOperationException
   {
     // If a Snowflake file format type is a substring of the SerDe, assume that
@@ -206,8 +243,8 @@ public class HiveToSnowflakeType
     Matcher matcher = sfFileFmtTypeRegex.matcher(serDeLib.toUpperCase());
     if (matcher.find())
     {
-      SnowflakeFileFormatTypes sfFileFmtType =
-          SnowflakeFileFormatTypes.valueOf(matcher.group(1));
+      SnowflakeFileFormatType sfFileFmtType =
+          SnowflakeFileFormatType.valueOf(matcher.group(1));
       log.info(String.format("Using Snowflake file format type: %s",
                              sfFileFmtType.toString()));
       return sfFileFmtType;
@@ -218,7 +255,7 @@ public class HiveToSnowflakeType
     {
       log.info("TextInputFormat detected and unknown SerDe- using CSV as the " +
                "file format type.");
-      return SnowflakeFileFormatTypes.CSV;
+      return SnowflakeFileFormatType.CSV;
     }
 
     throw new UnsupportedOperationException(

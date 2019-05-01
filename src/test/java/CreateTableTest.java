@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ */
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.jdbc.client.SnowflakeClient;
@@ -63,7 +66,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -75,7 +78,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -91,9 +94,9 @@ public class CreateTableTest
     Table table = TestUtil.initializeMockTable();
 
     Map<String, String> serDeParams = new HashMap<>();
-    serDeParams.put("field.delim", "','");
-    serDeParams.put("line.delim", "'\n'");
-    serDeParams.put("escape.delim", "'$'");
+    serDeParams.put("field.delim", ",");
+    serDeParams.put("line.delim", "\n");
+    serDeParams.put("escape.delim", "$");
     table.getSd().getSerdeInfo().setParameters(serDeParams);
 
     CreateTableEvent createTableEvent =
@@ -105,7 +108,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -116,8 +119,8 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
-                     "partition by (partcol,name)partition_type=user_specified location=@someDB_t1 " +
-                     "file_format=(RECORD_DELIMITER=''\n'',FIELD_DELIMITER='','',TYPE=CSV,ESCAPE=''$'') " +
+                     "partition by (partcol,name)partition_type=user_specified location=@someDB__t1 " +
+                     "file_format=(RECORD_DELIMITER='\\n',FIELD_DELIMITER=',',TYPE=CSV,ESCAPE='$') " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
   }
@@ -149,7 +152,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -161,7 +164,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
+                     "location=@someDB__t1 file_format=(TYPE=PARQUET) " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
   }
@@ -190,7 +193,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -204,7 +207,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -235,7 +238,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -249,7 +252,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=PARQUET) " +
+                     "location=@someDB__t1 file_format=(TYPE=PARQUET) " +
                      "AUTO_REFRESH=false;",
                  commands.get(1));
   }
@@ -277,7 +280,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -287,7 +290,7 @@ public class CreateTableTest
                      "expected alter table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
-                     "partition_type=implicit location=@someDB_t1 " +
+                     "partition_type=implicit location=@someDB__t1 " +
                      "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
     assertEquals("generated alter table command does not match " +
@@ -441,9 +444,9 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
-                     "STORAGE_INTEGRATION='anIntegration';",
+                     "STORAGE_INTEGRATION=anIntegration;",
                  commands.get(0));
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
@@ -451,9 +454,53 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
     assertEquals("Unexpected number of commands generated", 2, commands.size());
+  }
+
+  /**
+   * A test for generating a create table command for a table with a column
+   * of type VARCHAR(200), CHAR(200), DECIMAL(38,0)
+   *
+   * @throws Exception
+   */
+  @Test
+  public void varcharCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    table.getSd().setCols(Arrays.asList(
+        new FieldSchema("col1", "varchar(200)", null),
+        new FieldSchema("col2", "char(200)", null),
+        new FieldSchema("col3", "decimal(38,0)", null)));
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(" +
+                     "col1 VARCHAR(200) as (VALUE:c1::VARCHAR(200))," +
+                     "col2 CHAR(200) as (VALUE:c2::CHAR(200))," +
+                     "col3 DECIMAL(38,0) as (VALUE:c3::DECIMAL(38,0))," +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                 commands.get(1));
   }
 
   /**
@@ -492,8 +539,7 @@ public class CreateTableTest
         .thenReturn(mockConnection);
 
     // Mock configuration to have a wait time of zero (so tests are quick)
-    SnowflakeConf
-        mockConfig = TestUtil.initializeMockConfig();
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
     SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
@@ -507,7 +553,7 @@ public class CreateTableTest
 
     Mockito
         .verify(mockStatement, Mockito.times(2))
-        .executeQuery("CREATE OR REPLACE STAGE someDB_t1 " +
+        .executeQuery("CREATE OR REPLACE STAGE someDB__t1 " +
                           "URL='s3://bucketname/path/to/table'" +
                           "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
                           "\nAWS_SECRET_KEY='awsSecretKey');");
@@ -519,7 +565,7 @@ public class CreateTableTest
                 "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                 "partition by (partcol,name)" +
                 "partition_type=user_specified " +
-                "location=@someDB_t1 " +
+                "location=@someDB__t1 " +
                 "file_format=(TYPE=CSV) AUTO_REFRESH=false;");
   }
 
@@ -545,7 +591,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
                      "AWS_SECRET_KEY='awsSecretKey');",
@@ -559,7 +605,7 @@ public class CreateTableTest
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
           "partition by (partcol,name)partition_type=user_specified " +
-          "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+          "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
@@ -584,7 +630,7 @@ public class CreateTableTest
     List<String> commands = createExternalTable.generateCommands();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
-                 "CREATE OR REPLACE STAGE someDB_t1 " +
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='INVALID PROTOCOL://bucketname/path/to/table'\n" +
                      "credentials=(/* Error generating credentials " +
                        "expression: The stage type does not exist or is " +
@@ -598,7 +644,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB_t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
   }
 
