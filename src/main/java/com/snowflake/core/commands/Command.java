@@ -3,17 +3,47 @@
  */
 package com.snowflake.core.commands;
 
+import com.google.common.base.Preconditions;
+import org.apache.hadoop.hive.metastore.api.Table;
+
 import java.util.List;
 
 /**
- * The command interface for external table commands
+ * A class that represents a command to generate executable Snowflake
+ * statements from
  * @author xma
  */
-public interface Command
+public abstract class Command
 {
+  private final String databaseName;
+
+  private final String tableName;
+
+  protected Command(Table table)
+  {
+    this(Preconditions.checkNotNull(table).getDbName(),
+         Preconditions.checkNotNull(table).getTableName());
+  }
+
+  protected Command(String databaseName, String tableName)
+  {
+    this.databaseName = databaseName;
+    this.tableName = tableName;
+  }
+
+  public String getDatabaseName()
+  {
+    return databaseName;
+  }
+
+  public String getTableName()
+  {
+    return tableName;
+  }
+
   /**
    * Generates the query in a string form to be sent to Snowflake
    * @return The Snowflake commands generated
    */
-  List<String> generateCommands() throws Exception;
+  public abstract List<String> generateStatements() throws Exception;
 }

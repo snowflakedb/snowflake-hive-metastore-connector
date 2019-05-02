@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
+import com.google.common.collect.Lists;
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.AddPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
@@ -11,7 +13,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -20,10 +21,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.management.*")
-@PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class})
+@PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
+                    SnowflakeConf.class})
 
 /**
  * Tests for generating the add partition command
@@ -38,7 +41,7 @@ public class AddPartitionTest
   public void basicAddPartitionGenerateCommandTest() throws Exception
   {
     // mock table
-    Table table = createMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // mock partition
     Partition partition = new Partition();
@@ -46,21 +49,21 @@ public class AddPartitionTest
     partition.setSd(new StorageDescriptor());
     partition.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
 
-    HiveMetaStore.HMSHandler mockHandler =
-        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent =
         new AddPartitionEvent(table, partition, true, mockHandler);
 
-    AddPartition addPartition = new AddPartition(addPartitionEvent);
+    AddPartition addPartition = new AddPartition(addPartitionEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = addPartition.generateCommands();
+    List<String> commands = addPartition.generateStatements();
+    assertEquals(3, commands.size());
     assertEquals("generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
                      "name='testName') LOCATION 'sub/path' /* TABLE LOCATION " +
                      "= 's3n://bucketname/path/to/table' */;",
-                 commands.get(0));
+                 commands.get(2));
   }
 
   /**
@@ -71,7 +74,7 @@ public class AddPartitionTest
   public void multiAddPartitionGenerateCommandTest() throws Exception
   {
     // mock table
-    Table table = createMockTable();
+    Table table = TestUtil.initializeMockTable();
 
     // mock partitions
     Partition partition1 = new Partition();
@@ -84,39 +87,130 @@ public class AddPartitionTest
     partition2.setSd(new StorageDescriptor());
     partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
 
-    HiveMetaStore.HMSHandler mockHandler =
-        PowerMockito.mock(HiveMetaStore.HMSHandler.class);
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent = new AddPartitionEvent(
       table, Arrays.asList(partition1, partition2), true, mockHandler);
 
-    AddPartition addPartition = new AddPartition(addPartitionEvent);
+    AddPartition addPartition = new AddPartition(addPartitionEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = addPartition.generateCommands();
-    assertEquals("first generated add partition command does not match " +
+    List<String> commands = addPartition.generateStatements();
+    assertEquals(3, commands.size());
+    assertEquals("add partition command does not match " +
                      "expected add partition command",
-                 "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='1'," +
-                     "name='testName') LOCATION 'sub/path' /* TABLE LOCATION " +
-                     "= 's3n://bucketname/path/to/table' */;",
-                 commands.get(0));
-    assertEquals("second generated add partition command does not match " +
-                     "expected add partition command",
-                 "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='2'," +
-                     "name='testName2') LOCATION 'sub/path2' /* TABLE " +
-                     "LOCATION = 's3n://bucketname/path/to/table' */;",
-                 commands.get(1));
+                 "ALTER EXTERNAL TABLE t1 ADD " +
+                     "PARTITION(partcol='1',name='testName') " +
+                     "LOCATION 'sub/path', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2' " +
+                     "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
+                 commands.get(2));
   }
 
-  private static Table createMockTable()
+  /**
+   * Testing the combining functionality of add partition commands
+   */
+  @Test
+  public void combineAddPartitionGenerateCommandTest() throws Exception
   {
-    Table table = new Table();
-    table.setTableName("t1");
-    table.setPartitionKeys(Arrays.asList(
-        new FieldSchema("partcol", "int", null),
-        new FieldSchema("name", "string", null)));
-    table.setSd(new StorageDescriptor());
-    table.getSd().setLocation("s3n://bucketname/path/to/table");
+    // mock table
+    Table table = TestUtil.initializeMockTable();
 
-    return table;
+    // mock partitions
+    Partition partition1 = new Partition();
+    partition1.setValues(Arrays.asList("1", "testName"));
+    partition1.setSd(new StorageDescriptor());
+    partition1.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
+
+    Partition partition2 = new Partition();
+    partition2.setValues(Arrays.asList("2", "testName2"));
+    partition2.setSd(new StorageDescriptor());
+    partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
+        table, Lists.newArrayList(partition1), true, mockHandler);
+    AddPartitionEvent addPartitionEvent2 = new AddPartitionEvent(
+        table, Lists.newArrayList(partition2), true, mockHandler);
+
+    AddPartition addPartition1 = new AddPartition(addPartitionEvent1,
+                                                  TestUtil.initializeMockConfig());
+    AddPartition addPartition2 = new AddPartition(addPartitionEvent2,
+                                                  TestUtil.initializeMockConfig());
+
+    List<AddPartition> combined = AddPartition.combinedOf(addPartition1, addPartition2);
+    assertEquals(1, combined.size());
+    assertEquals("add partition command does not match " +
+                     "expected add partition command",
+                 "ALTER EXTERNAL TABLE t1 ADD " +
+                     "PARTITION(partcol='1',name='testName') " +
+                     "LOCATION 'sub/path', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2' " +
+                     "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
+                 combined.get(0).generateStatements().get(2));
+  }
+
+  /**
+   * Testing the combining functionality of add partition commands
+   */
+  @Test
+  public void combineOverflowAddPartitionGenerateCommandTest() throws Exception
+  {
+    // mock table
+    Table table = TestUtil.initializeMockTable();
+
+    // mock partitions
+    Partition partition1 = new Partition();
+    partition1.setValues(Arrays.asList("1", "testName"));
+    partition1.setSd(new StorageDescriptor());
+    partition1.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
+
+    Partition partition2 = new Partition();
+    partition2.setValues(Arrays.asList("2", "testName2"));
+    partition2.setSd(new StorageDescriptor());
+    partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
+        table, Lists.newArrayList(partition1), true, mockHandler);
+    Partition[] partitions = new Partition[101];
+    Arrays.fill(partitions, partition2);
+    AddPartitionEvent addPartitionEvent2 = new AddPartitionEvent(
+        table, Lists.newArrayList(partitions), true, mockHandler);
+
+    AddPartition addPartition1 = new AddPartition(addPartitionEvent1,
+                                                  TestUtil.initializeMockConfig());
+    AddPartition addPartition2 = new AddPartition(addPartitionEvent2,
+                                                  TestUtil.initializeMockConfig());
+
+    List<AddPartition> combined = AddPartition.combinedOf(addPartition1, addPartition2);
+    assertEquals(2, combined.size());
+    assertTrue("add partition command does not match " +
+                     "expected add partition command",
+               combined.get(0).generateStatements().get(2).startsWith(
+               "ALTER EXTERNAL TABLE t1 ADD " +
+                     "PARTITION(partcol='1',name='testName') " +
+                     "LOCATION 'sub/path', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2', "
+                 ));
+    assertEquals("add partition command does not match " +
+                     "expected add partition command",
+                 "ALTER EXTERNAL TABLE t1 ADD " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2', " +
+                     "PARTITION(partcol='2',name='testName2') " +
+                     "LOCATION 'sub/path2' " +
+                     "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
+                 combined.get(1).generateStatements().get(2));
   }
 }

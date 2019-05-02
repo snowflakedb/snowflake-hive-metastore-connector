@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * A class for the DropExternalTable command
  */
-public class DropExternalTable implements Command
+public class DropExternalTable extends Command
 {
   /**
    * Creates a DropExternalTable command
@@ -26,7 +26,7 @@ public class DropExternalTable implements Command
   public DropExternalTable(DropTableEvent dropTableEvent,
                            SnowflakeConf snowflakeConf)
   {
-    Preconditions.checkNotNull(dropTableEvent);
+    super(Preconditions.checkNotNull(dropTableEvent).getTable());
     this.hiveTable = Preconditions.checkNotNull(dropTableEvent.getTable());
     this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
   }
@@ -69,7 +69,7 @@ public class DropExternalTable implements Command
    * Generates the necessary commands on a hive drop table event
    * @return The Snowflake commands generated
    */
-  public List<String> generateCommands()
+  public List<String> generateStatements()
   {
     List<String> queryList = new ArrayList<>();
 

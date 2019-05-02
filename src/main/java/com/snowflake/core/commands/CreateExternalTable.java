@@ -27,7 +27,7 @@ import java.util.Optional;
  * A class for the CreateExternalTable command
  * @author xma
  */
-public class CreateExternalTable implements Command
+public class CreateExternalTable extends Command
 {
   /**
    * Creates a CreateExternalTable command
@@ -38,12 +38,10 @@ public class CreateExternalTable implements Command
   public CreateExternalTable(CreateTableEvent createTableEvent,
                              SnowflakeConf snowflakeConf)
   {
-    Preconditions.checkNotNull(createTableEvent);
-    this.hiveTable = Preconditions.checkNotNull(createTableEvent.getTable());
-    this.hiveConf = Preconditions.checkNotNull(
-        createTableEvent.getHandler().getConf());
-    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
-    this.canReplace = true;
+    this(Preconditions.checkNotNull(createTableEvent).getTable(),
+         snowflakeConf,
+         createTableEvent.getHandler().getConf(),
+         true);
   }
 
   /**
@@ -59,6 +57,7 @@ public class CreateExternalTable implements Command
                                 Configuration hiveConf,
                                 boolean canReplace)
   {
+    super(hiveTable);
     this.hiveTable = Preconditions.checkNotNull(hiveTable);
     this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
     this.hiveConf = Preconditions.checkNotNull(hiveConf);
@@ -411,7 +410,7 @@ public class CreateExternalTable implements Command
    * @throws UnsupportedOperationException Thrown when the input is invalid
    * @throws IllegalArgumentException Thrown when arguments are illegal
    */
-  public List<String> generateCommands()
+  public List<String> generateStatements()
       throws SQLException, UnsupportedOperationException,
              IllegalArgumentException
   {

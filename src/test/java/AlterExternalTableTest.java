@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
-import com.snowflake.core.commands.AlterTable;
+import com.snowflake.core.commands.AlterExternalTable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore("javax.management.*")
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class})
-public class AlterTableTest
+public class AlterExternalTableTest
 {
   /**
    * A basic test for generating a alter (touch) table command
@@ -39,9 +39,9 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+    AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = alterTable.generateCommands();
+    List<String> commands = alterTable.generateStatements();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
@@ -79,9 +79,9 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+    AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = alterTable.generateCommands();
+    List<String> commands = alterTable.generateStatements();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
@@ -118,9 +118,9 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+    AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = alterTable.generateCommands();
+    List<String> commands = alterTable.generateStatements();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
@@ -162,9 +162,9 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+    AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = alterTable.generateCommands();
+    List<String> commands = alterTable.generateStatements();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
@@ -207,9 +207,9 @@ public class AlterTableTest
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
                                                           true, true, mockHandler);
 
-    AlterTable alterTable = new AlterTable(alterTableEvent, TestUtil.initializeMockConfig());
+    AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = alterTable.generateCommands();
+    List<String> commands = alterTable.generateStatements();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
