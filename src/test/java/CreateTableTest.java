@@ -127,6 +127,49 @@ public class CreateTableTest
 
   /**
    * A test for generating a create table command for a table with file format
+   * type of CSV. Uses OpenCSV SerDe properties
+   *
+   * @throws Exception
+   */
+  @Test
+  public void openCsvCreateTableGenerateCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    Map<String, String> serDeParams = new HashMap<>();
+    serDeParams.put("separatorChar", ",");
+    serDeParams.put("escapeChar", "\\");
+    serDeParams.put("quoteChar", "\"");
+    table.getSd().getSerdeInfo().setParameters(serDeParams);
+
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = createExternalTable.generateCommands();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE STAGE someDB__t1 " +
+                     "URL='s3://bucketname/path/to/table'\n" +
+                     "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                     "AWS_SECRET_KEY='awsSecretKey');",
+                 commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(" +
+                     "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified location=@someDB__t1 " +
+                     "file_format=(FIELD_DELIMITER=',',TYPE=CSV,ESCAPE='\\\\',FIELD_OPTIONALLY_ENCLOSED_BY='\\\"') " +
+                     "AUTO_REFRESH=false;",
+                 commands.get(1));
+  }
+
+  /**
+   * A test for generating a create table command for a table with file format
    * type of Parquet.
    *
    * @throws Exception

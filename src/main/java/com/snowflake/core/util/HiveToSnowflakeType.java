@@ -189,6 +189,14 @@ public class HiveToSnowflakeType
               "ESCAPE",
               String.format("'%s'", StringUtil.escapeSqlText(escape)));
         }
+
+        String quote = serDeParams.getOrDefault("quoteChar", null);
+        if (quote != null)
+        {
+          snowflakeFileFormatOptions.put(
+              "FIELD_OPTIONALLY_ENCLOSED_BY",
+              String.format("'%s'", StringUtil.escapeSqlText(quote)));
+        }
         break;
       case PARQUET:
         String compression = tableProps.getOrDefault("parquet.compression",null);
