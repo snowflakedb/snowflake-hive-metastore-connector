@@ -6,6 +6,7 @@ package com.snowflake.core.commands;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.snowflake.core.util.StringUtil;
+import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,14 +16,15 @@ import java.util.List;
  * A class for no-op commands used for logging purposes, as queries sent to
  * Snowflake will be logged.
  */
-public class LogCommand implements Command
+public class LogCommand extends Command
 {
   /**
    * Constructor for LogCommand
    * @param log A string to be logged
    */
-  public LogCommand(String log)
+  public LogCommand(Table hiveTable, String log)
   {
+    super(hiveTable);
     this.log = Preconditions.checkNotNull(log);
   }
 
@@ -30,22 +32,21 @@ public class LogCommand implements Command
    * An overload of the constructor to log errors
    * @param error An exception to be logged as an error
    */
-  public LogCommand(Exception error)
+  public LogCommand(Table hiveTable, Exception error)
   {
-    Preconditions.checkNotNull(error);
-    this.log = String.format("HIVE METASTORE LISTENER ERROR (%s): '%s'\n" +
-                                 "STACKTRACE: '%s'",
-                             error.getClass().getCanonicalName(),
-                             error.getMessage(),
-                             getStackTrace(error));
+    this(hiveTable, String.format(
+        "HIVE METASTORE LISTENER ERROR (%s): '%s'\nSTACKTRACE: '%s'",
+        Preconditions.checkNotNull(error).getClass().getCanonicalName(),
+        error.getMessage(),
+        getStackTrace(error)));
   }
 
   /**
-   * Generates no-op logging commands, for example:
+   * Generates no-op logging queries, for example:
    * SELECT NULL /* LOGS IN COMMENTS * /;
-   * @return The Snowflake commands generated
+   * @return The Snowflake queries generated
    */
-  public List<String> generateCommands()
+  public List<String> generateSqlQueries()
   {
     return ImmutableList.<String>builder()
         .add(String.format("SELECT NULL /* %s */;",

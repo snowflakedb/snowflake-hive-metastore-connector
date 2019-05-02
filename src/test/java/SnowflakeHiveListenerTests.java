@@ -39,6 +39,7 @@ public class SnowflakeHiveListenerTests
   {
     Table table = new Table();
     table.setTableName("t1");
+    table.setDbName("db1");
 
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
@@ -53,16 +54,13 @@ public class SnowflakeHiveListenerTests
     // Mock the static class SnowflakeClient
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doNothing().when(SnowflakeClient.class);
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
 
     listener.onDropTable(dropTableEvent);
 
     // Verify
     PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
-
-    PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(dropTableEvent, mockConfig);
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
   }
 
   /**
@@ -74,6 +72,7 @@ public class SnowflakeHiveListenerTests
   {
     Table table = new Table();
     table.setTableName("t1");
+    table.setDbName("db1");
 
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
@@ -93,13 +92,13 @@ public class SnowflakeHiveListenerTests
     // Mock the static class SnowflakeClient
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doNothing().when(SnowflakeClient.class);
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
 
     listener.onDropTable(dropTableEvent);
 
     // Verify
     PowerMockito.verifyStatic(times(0));
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
   }
 
   /**
@@ -111,6 +110,7 @@ public class SnowflakeHiveListenerTests
   {
     Table table = new Table();
     table.setTableName("t1");
+    table.setDbName("db1");
 
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
@@ -130,16 +130,13 @@ public class SnowflakeHiveListenerTests
     // Mock the static class SnowflakeClient
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doNothing().when(SnowflakeClient.class);
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
 
     listener.onDropTable(dropTableEvent);
 
     // Verify
     PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
-
-    PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(dropTableEvent, mockConfig);
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
   }
 
   /**
@@ -171,13 +168,13 @@ public class SnowflakeHiveListenerTests
     // Mock the static class SnowflakeClient
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doNothing().when(SnowflakeClient.class);
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
 
     listener.onDropTable(dropTableEvent);
 
     // Verify
     PowerMockito.verifyStatic(times(0));
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
   }
 
   /**
@@ -209,15 +206,12 @@ public class SnowflakeHiveListenerTests
     // Mock the static class SnowflakeClient
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doNothing().when(SnowflakeClient.class);
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
 
     listener.onDropTable(dropTableEvent);
 
     // Verify
     PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(any(), any());
-
-    PowerMockito.verifyStatic(times(1));
-    SnowflakeClient.createAndExecuteEventForSnowflake(dropTableEvent, mockConfig);
+    SnowflakeClient.createAndExecuteCommandForSnowflake(any(), any());
   }
 }

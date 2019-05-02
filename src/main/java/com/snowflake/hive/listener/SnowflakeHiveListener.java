@@ -62,8 +62,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     logTableEvent("Event received", tableEvent, tableEvent.getTable());
     if (shouldHandle(tableEvent, tableEvent.getTable()))
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(tableEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -81,8 +81,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     logTableEvent("Event received", tableEvent, tableEvent.getTable());
     if (shouldHandle(tableEvent, tableEvent.getTable()))
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(tableEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -101,8 +101,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
                        partitionEvent.getTable(), partitionEvent.getPartitionIterator());
     if (partitionEvent.getStatus())
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(partitionEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -122,8 +122,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
                        partitionEvent.getTable(), partitionEvent.getPartitionIterator());
     if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(partitionEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -142,8 +142,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
     logTableEvent("Event received", tableEvent, tableEvent.getNewTable());
     if (shouldHandle(tableEvent, tableEvent.getNewTable()))
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(tableEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(tableEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -162,8 +162,8 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
                       partitionEvent.getTable(), partitionEvent.getNewPartition());
     if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
-      SnowflakeClient.createAndExecuteEventForSnowflake(partitionEvent,
-                                                        snowflakeConf);
+      SnowflakeClient.createAndExecuteCommandForSnowflake(partitionEvent,
+                                                          snowflakeConf);
     }
     else
     {
@@ -244,7 +244,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
       // The number of partitions might be large- log each partition separately
       // to be safe.
       partitionIterator.forEachRemaining((partition) ->
-        logPartitionEvent("continued for partition:", event, hiveTable, partition));
+                                             logPartitionEvent("continued for partition:", event, hiveTable, partition));
     }
     else
     {

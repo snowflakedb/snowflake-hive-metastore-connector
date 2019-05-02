@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  * A class for the DropPartition command
  * @author wwong
  */
-public class DropPartition implements Command
+public class DropPartition extends Command
 {
   /**
    * Creates a DropPartition command
@@ -26,7 +26,7 @@ public class DropPartition implements Command
    */
   public DropPartition(DropPartitionEvent dropPartitionEvent)
   {
-    Preconditions.checkNotNull(dropPartitionEvent);
+    super(Preconditions.checkNotNull(dropPartitionEvent).getTable());
     this.hiveTable = Preconditions.checkNotNull(dropPartitionEvent.getTable());
     this.getPartititonsIterator = dropPartitionEvent::getPartitionIterator;
   }
@@ -55,7 +55,7 @@ public class DropPartition implements Command
    * Generates the necessary commands on a Hive drop partition event
    * @return The Snowflake commands generated
    */
-  public List<String> generateCommands()
+  public List<String> generateSqlQueries()
   {
     List<String> queryList = new ArrayList<>();
 

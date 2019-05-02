@@ -21,10 +21,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A class for the AlterTable command
+ * A class for the AlterExternalTable command
+ * TODO: Split into TouchExternalTable and AlterColumnsExternalTable
  * @author wwong
  */
-public class AlterTable implements Command
+public class AlterExternalTable extends Command
 {
   /**
    * Creates a AlterTable command
@@ -32,10 +33,10 @@ public class AlterTable implements Command
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
    */
-  public AlterTable(AlterTableEvent alterTableEvent,
-                    SnowflakeConf snowflakeConf)
+  public AlterExternalTable(AlterTableEvent alterTableEvent,
+                            SnowflakeConf snowflakeConf)
   {
-    Preconditions.checkNotNull(alterTableEvent);
+    super(Preconditions.checkNotNull(alterTableEvent).getOldTable());
     this.oldHiveTable =
         Preconditions.checkNotNull(alterTableEvent.getOldTable());
     this.newHiveTable =
@@ -112,20 +113,21 @@ public class AlterTable implements Command
                             .collect(Collectors.toList()))));
   }
 
+
   /**
-   * Generates the necessary commands on a Hive alter table event
-   * @return The Snowflake commands generated
+   * Generates the necessary queries on a Hive alter table event
+   * @return The Snowflake queries generated
    * @throws SQLException Thrown when there was an error executing a Snowflake
-   *                      SQL command.
+   *                      SQL query (if a Snowflake query must be executed).
    * @throws UnsupportedOperationException Thrown when the input is invalid
    */
-  public List<String> generateCommands()
+  public List<String> generateSqlQueries()
       throws SQLException, UnsupportedOperationException
   {
     // TODO: Add support for other alter table commands, such as rename table
     if (!oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
     {
-      return new LogCommand("Received no-op alter table command.").generateCommands();
+      return new LogCommand(oldHiveTable, "Received no-op alter table command.").generateSqlQueries();
     }
 
     // All supported alter table events (e.g. touch) generate create statements
@@ -134,7 +136,7 @@ public class AlterTable implements Command
         snowflakeConf,
         hiveConf,
         false // Do not replace table
-    ).generateCommands();
+    ).generateSqlQueries();
 
     // If the columns are different, generate an add/drop column event
     // TODO: Support more alter column events, including positional ones
