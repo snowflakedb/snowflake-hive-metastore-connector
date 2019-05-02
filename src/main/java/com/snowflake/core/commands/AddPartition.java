@@ -4,9 +4,7 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.util.StringUtil;
 import org.apache.hadoop.conf.Configuration;
@@ -20,7 +18,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -35,45 +32,58 @@ public class AddPartition extends Command
   /**
    * Creates an AddPartition command
    * @param addPartitionEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
   public AddPartition(AddPartitionEvent addPartitionEvent,
                       SnowflakeConf snowflakeConf)
   {
     this(Preconditions.checkNotNull(addPartitionEvent).getTable(),
-         addPartitionEvent::getPartitionIterator,
+         addPartitionEvent.getPartitionIterator(),
          snowflakeConf,
-         addPartitionEvent.getHandler().getConf());
+         addPartitionEvent.getHandler().getConf(),
+         false);
   }
 
   /**
    * Creates an AddPartition command
    * @param alterPartitionEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
   public AddPartition(AlterPartitionEvent alterPartitionEvent,
                       SnowflakeConf snowflakeConf)
   {
     this(Preconditions.checkNotNull(alterPartitionEvent).getTable(),
-         () -> Iterators.singletonIterator(alterPartitionEvent.getOldPartition()),
+         Iterators.singletonIterator(alterPartitionEvent.getOldPartition()),
          snowflakeConf,
-         alterPartitionEvent.getHandler().getConf());
+         alterPartitionEvent.getHandler().getConf(),
+         false);
   }
 
   /**
    * Creates an AddPartition command without an event
    * @param hiveTable The Hive table to generate a command from
-   * @param getPartititonsIterator A method that supplies an iterator for
-   *                               partitions to add
+   * @param partitionsIterator A method that supplies an iterator for
+   *                            partitions to add
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   * @param hiveConf The Hive configuration
+   * @param isCompact internal marker to check if this command was generated
+   *                  by compaction
    */
   protected AddPartition(Table hiveTable,
-                         Supplier<Iterator<Partition>> getPartititonsIterator,
+                         Iterator<Partition> partitionsIterator,
                          SnowflakeConf snowflakeConf,
-                         Configuration hiveConf)
+                         Configuration hiveConf,
+                         boolean isCompact)
   {
     super(hiveTable);
     this.hiveTable = Preconditions.checkNotNull(hiveTable);
-    this.getPartititonsIterator = Preconditions.checkNotNull(getPartititonsIterator);
+    this.partitionsIterator = Preconditions.checkNotNull(partitionsIterator);
     this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
     this.hiveConf = Preconditions.checkNotNull(hiveConf);
+    this.isCompact = isCompact;
   }
 
   /**
@@ -150,65 +160,70 @@ public class AddPartition extends Command
                                 false // Do not replace table
                                 ).generateSqlQueries());
 
-    Iterators.partition(this.getPartititonsIterator.get(), MAX_ADDED_PARTITIONS)
+    Iterators.partition(this.partitionsIterator, MAX_ADDED_PARTITIONS)
         .forEachRemaining(partitions ->
             queryList.add(generateAddPartitionsCommand(
-                Lists.newArrayList(partitions))));
+                new ArrayList<>(partitions))));
 
     return queryList;
   }
 
   /**
-   * Combines two add partition commands into one or two new commands. The
-   * first command outputted will contain at most MAX_ADDED_PARTITIONS
-   * partitions to add. If there are more than that many commands, the rest will
-   * overflow into the second command.
-   * If either is null, return a list with the other. Both input commands
-   * cannot be null.
-   * @param command1 a command to combine
-   * @param command2 a command to combine
-   * @return one or two "combined" commands
+   * Combines N add partition commands with M total partitions into
+   * ceil(M / MAX_ADDED_PARTITIONS) new add partition commands. If
+   * M > N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
+   * Each command except the last one will have MAX_ADDED_PARTITIONS partitions.
+   * Assumes that the commands are all for the same table, with no
+   * modifications to the table in between
+   * @param addPartitions the add partition commands to combine.
+   * @return the compacted add partition commands
    */
-  public static List<AddPartition> combinedOf(AddPartition command1,
-                                              AddPartition command2)
+  public static List<AddPartition> compact(List<AddPartition> addPartitions)
   {
-    Preconditions.checkState(command1 != null || command2 != null);
-    if (command1 == null)
-    {
-      return ImmutableList.of(command2);
-    }
-    if (command2 == null)
-    {
-      return ImmutableList.of(command1);
-    }
+    Preconditions.checkNotNull(addPartitions);
+    Preconditions.checkArgument(!addPartitions.isEmpty());
 
-    Iterator<Partition> combined = Iterators.concat(command1.getPartititonsIterator.get(),
-                                                    command2.getPartititonsIterator.get());
-    // Creating an array from and iterator also advances the combined one
-    Iterator<Partition> first = Iterators.forArray(Iterators.toArray(
-        Iterators.limit(combined, MAX_ADDED_PARTITIONS), Partition.class));
+    AddPartition first = addPartitions.get(0);
 
-    AddPartition firstCommand = new AddPartition(command2.hiveTable,
-                                                 () -> first,
-                                                 command2.snowflakeConf,
-                                                 command2.hiveConf);
-    if (!combined.hasNext())
-    {
-      return ImmutableList.of(firstCommand);
-    }
+    List<AddPartition> compacted = new ArrayList<>();
 
-    AddPartition secondCommand = new AddPartition(command2.hiveTable,
-                                                  () -> combined,
-                                                  command2.snowflakeConf,
-                                                  command2.hiveConf);
-    return ImmutableList.of(firstCommand, secondCommand);
+    // Compaction entails:
+    // 1. Combine each iterator in to one big iterator
+    // 2. Partitioning the combined iterator into sections
+    // 3. Creating a command for each section
+    Iterators.partition(
+        Iterators.concat(
+            addPartitions.stream()
+                .map(command -> command.partitionsIterator)
+                .collect(Collectors.toList()).iterator()),
+        MAX_ADDED_PARTITIONS)
+        .forEachRemaining(partitions ->
+                              compacted.add(
+                                  new AddPartition(first.hiveTable,
+                                                   partitions.iterator(),
+                                                   first.snowflakeConf,
+                                                   first.hiveConf,
+                                                   true)));
+
+    return compacted;
+  }
+
+  /**
+   * Mthod to determine whether a command was already compacted
+   * @return whether a command was compacted
+   */
+  public boolean isCompact()
+  {
+    return isCompact;
   }
 
   private final Table hiveTable;
 
-  private final Supplier<Iterator<Partition>> getPartititonsIterator;
+  private final Iterator<Partition> partitionsIterator;
 
   private final Configuration hiveConf;
 
   private final SnowflakeConf snowflakeConf;
+
+  private final boolean isCompact;
 }

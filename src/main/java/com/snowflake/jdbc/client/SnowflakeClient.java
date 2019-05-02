@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.util.CommandGenerator;
+import com.snowflake.core.util.Scheduler;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
@@ -30,25 +31,35 @@ public class SnowflakeClient
   private static final Logger log =
       LoggerFactory.getLogger(SnowflakeHiveListener.class);
 
+  private static Scheduler scheduler;
+
   /**
-   * Creates and executes an event for snowflake. The steps are:
-   * 1. Generate the list of Snowflake queries that will need to be run given
-   *    the Hive command
-   * 2. Get the connection to a Snowflake account
-   * 3. Run the query on Snowflake
-   * @param event - the hive event
+   * Creates and executes an event for snowflake. Events may be processed in
+   * the background, but events on the same table will be processed in order.
+   * @param event - the hive event details
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
-   *                        listener
    */
   public static void createAndExecuteCommandForSnowflake(
       ListenerEvent event,
       SnowflakeConf snowflakeConf)
   {
+    Preconditions.checkNotNull(event);
+
     // Obtains the proper command
     log.info("Creating the Snowflake command");
     Command command = CommandGenerator.getCommand(event, snowflakeConf);
 
-    generateAndExecuteSnowflakeStatements(command, snowflakeConf);
+    boolean backgroundTaskEnabled = !snowflakeConf.getBoolean(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS.getVarname(), false);
+    if (backgroundTaskEnabled)
+    {
+      initScheduler(snowflakeConf);
+      scheduler.enqueueMessage(command);
+    }
+    else
+    {
+      generateAndExecuteSnowflakeStatements(command, snowflakeConf);
+    }
   }
 
   /**
@@ -166,6 +177,24 @@ public class SnowflakeClient
                    "connection: " + e.getMessage());
       throw e;
     }
+  }
+
+  /**
+   * Helper method. Initializes and starts the query scheduler
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  private static void initScheduler(SnowflakeConf snowflakeConf)
+  {
+    if (scheduler != null)
+    {
+      return;
+    }
+
+    int numThreads = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_THREAD_COUNT.getVarname(), 8);
+
+    scheduler = new Scheduler(numThreads, snowflakeConf);
   }
 
   /**

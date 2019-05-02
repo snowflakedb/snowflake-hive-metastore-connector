@@ -148,7 +148,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +

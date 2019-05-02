@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.AddPartition;
@@ -16,7 +17,9 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -129,16 +132,17 @@ public class AddPartitionTest
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
-        table, Lists.newArrayList(partition1), true, mockHandler);
+        table, Collections.singletonList(partition1), true, mockHandler);
     AddPartitionEvent addPartitionEvent2 = new AddPartitionEvent(
-        table, Lists.newArrayList(partition2), true, mockHandler);
+        table, Collections.singletonList(partition2), true, mockHandler);
 
     AddPartition addPartition1 = new AddPartition(addPartitionEvent1,
                                                   TestUtil.initializeMockConfig());
     AddPartition addPartition2 = new AddPartition(addPartitionEvent2,
                                                   TestUtil.initializeMockConfig());
 
-    List<AddPartition> combined = AddPartition.combinedOf(addPartition1, addPartition2);
+    List<AddPartition> combined = AddPartition.compact(ImmutableList.of(addPartition1,
+                                                                        addPartition2));
     assertEquals(1, combined.size());
     assertEquals("add partition command does not match " +
                      "expected add partition command",
@@ -174,18 +178,22 @@ public class AddPartitionTest
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
-        table, Lists.newArrayList(partition1), true, mockHandler);
-    Partition[] partitions = new Partition[101];
-    Arrays.fill(partitions, partition2);
+        table, Collections.singletonList(partition1), true, mockHandler);
+    List<Partition> partitions = new ArrayList<>();
+    for (int i = 0; i < 101; i++)
+    {
+      partitions.add(partition2);
+    }
     AddPartitionEvent addPartitionEvent2 = new AddPartitionEvent(
-        table, Lists.newArrayList(partitions), true, mockHandler);
+        table, partitions, true, mockHandler);
 
     AddPartition addPartition1 = new AddPartition(addPartitionEvent1,
                                                   TestUtil.initializeMockConfig());
     AddPartition addPartition2 = new AddPartition(addPartitionEvent2,
                                                   TestUtil.initializeMockConfig());
 
-    List<AddPartition> combined = AddPartition.combinedOf(addPartition1, addPartition2);
+    List<AddPartition> combined = AddPartition.compact(ImmutableList.of(addPartition1,
+                                                                        addPartition2));
     assertEquals(2, combined.size());
     assertTrue("add partition command does not match " +
                      "expected add partition command",
