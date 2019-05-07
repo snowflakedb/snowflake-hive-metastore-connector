@@ -45,7 +45,7 @@ public class DropTableTest
         new DropExternalTable(dropTableEvent,
                               TestUtil.initializeMockConfig());
 
-    List<String> commands = dropExternalTable.generateCommands();
+    List<String> commands = dropExternalTable.generateSqlQueries();
     assertEquals("generated drop table command does not match " +
         "expected drop table command",
         "DROP EXTERNAL TABLE IF EXISTS t1;",

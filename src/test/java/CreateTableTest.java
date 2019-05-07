@@ -63,7 +63,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -105,7 +105,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -148,7 +148,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -192,7 +192,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -233,7 +233,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -278,7 +278,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -320,7 +320,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -368,7 +368,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
@@ -406,7 +406,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
@@ -447,7 +447,7 @@ public class CreateTableTest
     boolean threwCorrectException = false;
     try
     {
-      createExternalTable.generateCommands();
+      createExternalTable.generateSqlQueries();
     }
     catch (IllegalArgumentException ex)
     {
@@ -484,7 +484,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, mockConfig);
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -524,7 +524,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -585,8 +585,8 @@ public class CreateTableTest
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
-    SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
-                                                      mockConfig);
+    SnowflakeClient.createAndExecuteCommandForSnowflake(
+        createTableEvent, mockConfig);
 
     // Count the number of times each query was executed. They should have
     // executed twice each.
@@ -631,7 +631,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -670,7 +670,7 @@ public class CreateTableTest
     CreateExternalTable createExternalTable =
         new CreateExternalTable(createTableEvent, TestUtil.initializeMockConfig());
 
-    List<String> commands = createExternalTable.generateCommands();
+    List<String> commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
@@ -716,7 +716,7 @@ public class CreateTableTest
 
     try
     {
-      createExternalTable.generateCommands();
+      createExternalTable.generateSqlQueries();
       fail("Command generation did not fail when it should have.");
     }
     catch (IllegalArgumentException ex)
@@ -740,7 +740,7 @@ public class CreateTableTest
    * @throws Exception
    */
   @Test
-  public void logErrorCreateTableGenerateCommandTest() throws Exception
+  public void noOpErrorCreateTableGenerateCommandTest() throws Exception
   {
     Table table = TestUtil.initializeMockTable();
     table.getSd().setInputFormat("NOT A VALID FORMAT");
@@ -779,18 +779,11 @@ public class CreateTableTest
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
 
     // Execute an event
-    SnowflakeClient.createAndExecuteEventForSnowflake(createTableEvent,
-                                                      mockConfig);
+    SnowflakeClient.createAndExecuteCommandForSnowflake(
+        createTableEvent, mockConfig);
 
     Mockito
-        .verify(mockStatement, Mockito.times(1)); // No retries
-    String expectedSubtring = "SELECT NULL /* HIVE METASTORE LISTENER ERROR " +
-          "(java.lang.UnsupportedOperationException): 'Snowflake does not " +
-          "support the corresponding SerDe: NOT A VALID SERDE'\n" +
-          "STACKTRACE: 'java.lang.UnsupportedOperationException: Snowflake does" +
-          " not support the corresponding SerDe: NOT A VALID SERDE\n";
-    assertEquals(1, executeQueryParams.size());
-    assertTrue("Invocation does not contain the expected substring",
-               executeQueryParams.get(0).contains(expectedSubtring));
+        .verify(mockStatement, Mockito.times(0)); // No retries
+    assertEquals(0, executeQueryParams.size());
   }
 }

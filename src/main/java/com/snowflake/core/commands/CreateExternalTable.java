@@ -27,7 +27,7 @@ import java.util.Optional;
  * A class for the CreateExternalTable command
  * @author xma
  */
-public class CreateExternalTable implements Command
+public class CreateExternalTable extends Command
 {
   /**
    * Creates a CreateExternalTable command
@@ -38,12 +38,10 @@ public class CreateExternalTable implements Command
   public CreateExternalTable(CreateTableEvent createTableEvent,
                              SnowflakeConf snowflakeConf)
   {
-    Preconditions.checkNotNull(createTableEvent);
-    this.hiveTable = Preconditions.checkNotNull(createTableEvent.getTable());
-    this.hiveConf = Preconditions.checkNotNull(
-        createTableEvent.getHandler().getConf());
-    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
-    this.canReplace = true;
+    this(Preconditions.checkNotNull(createTableEvent).getTable(),
+         snowflakeConf,
+         createTableEvent.getHandler().getConf(),
+         true);
   }
 
   /**
@@ -59,6 +57,7 @@ public class CreateExternalTable implements Command
                                 Configuration hiveConf,
                                 boolean canReplace)
   {
+    super(hiveTable);
     this.hiveTable = Preconditions.checkNotNull(hiveTable);
     this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
     this.hiveConf = Preconditions.checkNotNull(hiveConf);
@@ -302,7 +301,7 @@ public class CreateExternalTable implements Command
    *           CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
    *             STORAGE_INTEGRATION='storageIntegration';
    */
-  private LocationWithCreateStageCommand generateLocationWithCommand()
+  private LocationWithCreateStageQuery generateLocationWithCommand()
       throws SQLException
   {
     String hiveTableLocation = hiveTable.getSd().getLocation();
@@ -361,7 +360,7 @@ public class CreateExternalTable implements Command
     }
 
     Preconditions.checkNotNull(location);
-    return new LocationWithCreateStageCommand(location, Optional.ofNullable(command));
+    return new LocationWithCreateStageQuery(location, Optional.ofNullable(command));
   }
 
   private String getStageLocationFromStageName(String stageName)
@@ -395,7 +394,7 @@ public class CreateExternalTable implements Command
   }
 
   /**
-   * Generates the commands for create external table
+   * Generates the queries for create external table
    * The behavior of this method is as follows (in order of preference):
    *  a. If the user specifies an integration, use the integration to create
    *     a stage. Then, use the stage to create a table.
@@ -405,21 +404,21 @@ public class CreateExternalTable implements Command
    *     stage to create a table.
    *  d. Raise an error. Do not create a table.
    *
-   * @return The Snowflake commands generated
+   * @return The Snowflake query generated
    * @throws SQLException Thrown when there was an error executing a Snowflake
-   *                      SQL command.
+   *                      SQL query (if a Snowflake query must be executed).
    * @throws UnsupportedOperationException Thrown when the input is invalid
    * @throws IllegalArgumentException Thrown when arguments are illegal
    */
-  public List<String> generateCommands()
+  public List<String> generateSqlQueries()
       throws SQLException, UnsupportedOperationException,
              IllegalArgumentException
   {
     List<String> queryList = new ArrayList<>();
 
-    LocationWithCreateStageCommand stageLocationAndCommand = generateLocationWithCommand();
+    LocationWithCreateStageQuery stageLocationAndCommand = generateLocationWithCommand();
     String location = stageLocationAndCommand.getLocation();
-    stageLocationAndCommand.getCommand().ifPresent(queryList::add);
+    stageLocationAndCommand.getQuery().ifPresent(queryList::add);
 
     Preconditions.checkNotNull(location);
     queryList.add(generateCreateTableCommand(location));
@@ -445,18 +444,18 @@ public class CreateExternalTable implements Command
   /**
    * Class that contains output from generateLocation.
    * Contains a location suitable for creating a table with, as well as the
-   * command to its stage with, if a new stage should be used.
+   * query to create its stage with, if a new stage should be used.
    */
-  private class LocationWithCreateStageCommand
+  private class LocationWithCreateStageQuery
   {
     private String location;
 
-    private Optional<String> command;
+    private Optional<String> query;
 
-    LocationWithCreateStageCommand(String location, Optional<String> command)
+    LocationWithCreateStageQuery(String location, Optional<String> query)
     {
       this.location = location;
-      this.command = command;
+      this.query = query;
     }
 
     String getLocation()
@@ -464,9 +463,9 @@ public class CreateExternalTable implements Command
       return location;
     }
 
-    Optional<String> getCommand()
+    Optional<String> getQuery()
     {
-      return command;
+      return query;
     }
   }
 }

@@ -4,57 +4,118 @@
 package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.util.StringUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AddPartitionEvent;
+import org.apache.hadoop.hive.metastore.events.AlterPartitionEvent;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * A class for the AddPartition command
  * @author wwong
  */
-public class AddPartition implements Command
+public class AddPartition extends Command
 {
+  // The maximum number of partitions we should add in one statement.
+  private static final int MAX_ADDED_PARTITIONS = 100;
+
   /**
    * Creates an AddPartition command
    * @param addPartitionEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
    */
-  public AddPartition(AddPartitionEvent addPartitionEvent)
+  public AddPartition(AddPartitionEvent addPartitionEvent,
+                      SnowflakeConf snowflakeConf)
   {
-    Preconditions.checkNotNull(addPartitionEvent);
-    this.hiveTable = Preconditions.checkNotNull(addPartitionEvent.getTable());
-    this.getPartititonsIterator = addPartitionEvent::getPartitionIterator;
+    this(Preconditions.checkNotNull(addPartitionEvent).getTable(),
+         addPartitionEvent.getPartitionIterator(),
+         snowflakeConf,
+         addPartitionEvent.getHandler().getConf(),
+         false);
+  }
+
+  /**
+   * Creates an AddPartition command
+   * @param alterPartitionEvent Event to generate a command from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  public AddPartition(AlterPartitionEvent alterPartitionEvent,
+                      SnowflakeConf snowflakeConf)
+  {
+    this(Preconditions.checkNotNull(alterPartitionEvent).getTable(),
+         Iterators.singletonIterator(alterPartitionEvent.getOldPartition()),
+         snowflakeConf,
+         alterPartitionEvent.getHandler().getConf(),
+         false);
   }
 
   /**
    * Creates an AddPartition command without an event
    * @param hiveTable The Hive table to generate a command from
-   * @param getPartititonsIterator A method that supplies an iterator for
-   *                               partitions to add
+   * @param partitionsIterator A method that supplies an iterator for
+   *                            partitions to add
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   * @param hiveConf The Hive configuration
+   * @param isCompact internal marker to check if this command was generated
+   *                  by compaction
    */
   protected AddPartition(Table hiveTable,
-                         Supplier<Iterator<Partition>> getPartititonsIterator)
+                         Iterator<Partition> partitionsIterator,
+                         SnowflakeConf snowflakeConf,
+                         Configuration hiveConf,
+                         boolean isCompact)
   {
-    this.hiveTable = hiveTable;
-    this.getPartititonsIterator = getPartititonsIterator;
+    super(hiveTable);
+    this.hiveTable = Preconditions.checkNotNull(hiveTable);
+    this.partitionsIterator = Preconditions.checkNotNull(partitionsIterator);
+    this.snowflakeConf = Preconditions.checkNotNull(snowflakeConf);
+    this.hiveConf = Preconditions.checkNotNull(hiveConf);
+    this.isCompact = isCompact;
   }
 
   /**
    * Generates the commands for add partition.
    * Note: the partition location must be a subpath of the stage location
-   * @param partition Partition object to generate a command from
+   * @param partitions Partition objects to generate a command from
    * @return The equivalent Snowflake command generated, for example:
    *         ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='partcolname')
    *         LOCATION 'sub/path'
    *         /* TABLE LOCATION = 's3n://bucketname/path/to/table' * /;
    */
-  private String generateAddPartitionCommand(Partition partition)
+  private String generateAddPartitionsCommand(List<Partition> partitions)
+  {
+    Preconditions.checkNotNull(partitions);
+    Preconditions.checkArgument(!partitions.isEmpty());
+    return String.format(
+        "ALTER EXTERNAL TABLE %s ADD %s /* TABLE LOCATION = '%s' */;",
+        StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
+        String.join(", ",
+                    partitions.stream()
+                        .map(this::generatePartitionDetails)
+                        .collect(Collectors.toList())),
+        StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
+  }
+
+  /**
+   * Generates a portion of the add partition command.
+   * @param partition Partition object to generate a portion of a command
+   * @return A portion of the command that represents the partition,
+   *         for example: PARTITION(partcol='partcolname') LOCATION 'sub/path'
+   */
+  private String generatePartitionDetails(Partition partition)
   {
     List<FieldSchema> partitionKeys = hiveTable.getPartitionKeys();
     List<String> partitionValues = partition.getValues();
@@ -71,8 +132,8 @@ public class AddPartition implements Command
       // skip this partition instead.
       if ("__HIVE_DEFAULT_PARTITION__".equalsIgnoreCase(partitionValues.get(i)))
       {
-        return new LogCommand(
-            "Cannot add partition __HIVE_DEFAULT_PARTITION__. Skipping.").generateCommands().get(0);
+        return new LogCommand(hiveTable,
+            "Cannot add partition __HIVE_DEFAULT_PARTITION__. Skipping.").generateSqlQueries().get(0);
       }
 
       partitionDefinitions.add(
@@ -81,36 +142,88 @@ public class AddPartition implements Command
                         StringUtil.escapeSqlText(partitionValues.get(i))));
     }
 
-    return String.format(
-        "ALTER EXTERNAL TABLE %1$s " +
-        "ADD PARTITION(%2$s) " +
-        "LOCATION '%3$s' " +
-        "/* TABLE LOCATION = '%4$s' */;",
-        StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
-        String.join(",", partitionDefinitions),
-        StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)),
-        StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
+    return String.format("PARTITION(%s) LOCATION '%s'",
+                         String.join(",", partitionDefinitions),
+                         StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)));
   }
 
   /**
-   * Generates the commands for add partition.
-   * @return The Snowflake commands generated
+   * Generates the queries for add partition.
+   * @return The Snowflake queries generated
    */
-  public List<String> generateCommands()
+  public List<String> generateSqlQueries() throws SQLException
   {
-    List<String> queryList = new ArrayList<>();
+    List<String> queryList = new ArrayList<>(
+        new CreateExternalTable(hiveTable,
+                                snowflakeConf,
+                                hiveConf,
+                                false // Do not replace table
+                                ).generateSqlQueries());
 
-    Iterator<Partition> partitionIterator = this.getPartititonsIterator.get();
-    while (partitionIterator.hasNext())
-    {
-      Partition partition = partitionIterator.next();
-      queryList.add(this.generateAddPartitionCommand(partition));
-    }
+    Iterators.partition(this.partitionsIterator, MAX_ADDED_PARTITIONS)
+        .forEachRemaining(partitions ->
+            queryList.add(generateAddPartitionsCommand(
+                new ArrayList<>(partitions))));
 
     return queryList;
   }
 
+  /**
+   * Combines N add partition commands with M total partitions into
+   * ceil(M / MAX_ADDED_PARTITIONS) new add partition commands. If
+   * M > N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
+   * Each command except the last one will have MAX_ADDED_PARTITIONS partitions.
+   * Assumes that the commands are all for the same table, with no
+   * modifications to the table in between
+   * @param addPartitions the add partition commands to combine.
+   * @return the compacted add partition commands
+   */
+  public static List<AddPartition> compact(List<AddPartition> addPartitions)
+  {
+    Preconditions.checkNotNull(addPartitions);
+    Preconditions.checkArgument(!addPartitions.isEmpty());
+
+    AddPartition first = addPartitions.get(0);
+
+    List<AddPartition> compacted = new ArrayList<>();
+
+    // Compaction entails:
+    // 1. Combine each iterator in to one big iterator
+    // 2. Partitioning the combined iterator into sections
+    // 3. Creating a command for each section
+    Iterators.partition(
+        Iterators.concat(
+            addPartitions.stream()
+                .map(command -> command.partitionsIterator)
+                .collect(Collectors.toList()).iterator()),
+        MAX_ADDED_PARTITIONS)
+        .forEachRemaining(partitions ->
+                              compacted.add(
+                                  new AddPartition(first.hiveTable,
+                                                   partitions.iterator(),
+                                                   first.snowflakeConf,
+                                                   first.hiveConf,
+                                                   true)));
+
+    return compacted;
+  }
+
+  /**
+   * Mthod to determine whether a command was already compacted
+   * @return whether a command was compacted
+   */
+  public boolean isCompact()
+  {
+    return isCompact;
+  }
+
   private final Table hiveTable;
 
-  private final Supplier<Iterator<Partition>> getPartititonsIterator;
+  private final Iterator<Partition> partitionsIterator;
+
+  private final Configuration hiveConf;
+
+  private final SnowflakeConf snowflakeConf;
+
+  private final boolean isCompact;
 }

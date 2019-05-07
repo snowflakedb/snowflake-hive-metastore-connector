@@ -5,8 +5,7 @@ package com.snowflake.core.util;
 
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.AddPartition;
-import com.snowflake.core.commands.AlterPartition;
-import com.snowflake.core.commands.AlterTable;
+import com.snowflake.core.commands.AlterExternalTable;
 import com.snowflake.core.commands.Command;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.core.commands.DropExternalTable;
@@ -57,7 +56,7 @@ public class CommandGenerator
     else if (event instanceof AddPartitionEvent)
     {
       log.info("Generating Add Partition command");
-      command = new AddPartition((AddPartitionEvent)event);
+      command = new AddPartition((AddPartitionEvent)event, snowflakeConf);
     }
     else if (event instanceof DropPartitionEvent)
     {
@@ -67,12 +66,12 @@ public class CommandGenerator
     else if (event instanceof AlterTableEvent)
     {
       log.info("Generating Alter Table command");
-      command = new AlterTable((AlterTableEvent)event, snowflakeConf);
+      command = new AlterExternalTable((AlterTableEvent)event, snowflakeConf);
     }
     else if (event instanceof AlterPartitionEvent)
     {
       log.info("Generating Alter Partition command");
-      command = new AlterPartition((AlterPartitionEvent)event, snowflakeConf);
+      command = new AddPartition((AlterPartitionEvent)event, snowflakeConf);
     }
 
     return command;

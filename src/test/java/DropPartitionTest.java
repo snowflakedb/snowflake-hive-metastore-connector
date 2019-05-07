@@ -55,7 +55,7 @@ public class DropPartitionTest
 
     DropPartition dropPartition = new DropPartition(dropPartitionEvent);
 
-    List<String> commands = dropPartition.generateCommands();
+    List<String> commands = dropPartition.generateSqlQueries();
     assertEquals("generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 DROP PARTITION " +
@@ -101,7 +101,7 @@ public class DropPartitionTest
 
     DropPartition dropPartition = new DropPartition(dropPartitionEvent);
 
-    List<String> commands = dropPartition.generateCommands();
+    List<String> commands = dropPartition.generateSqlQueries();
     assertEquals("first generated add partition command does not match " +
                      "expected add partition command",
                  "ALTER EXTERNAL TABLE t1 DROP PARTITION " +

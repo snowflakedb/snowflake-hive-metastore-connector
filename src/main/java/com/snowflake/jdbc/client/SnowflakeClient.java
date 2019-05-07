@@ -3,10 +3,11 @@
  */
 package com.snowflake.jdbc.client;
 
+import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.Command;
-import com.snowflake.core.commands.LogCommand;
 import com.snowflake.core.util.CommandGenerator;
+import com.snowflake.core.util.Scheduler;
 import com.snowflake.hive.listener.SnowflakeHiveListener;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
@@ -27,28 +28,50 @@ import java.util.Properties;
  */
 public class SnowflakeClient
 {
-
   private static final Logger log =
       LoggerFactory.getLogger(SnowflakeHiveListener.class);
 
+  private static Scheduler scheduler;
+
   /**
-   * Creates and executes an event for snowflake. The steps are:
-   * 1. Generate the list of Snowflake queries that will need to be run given
-   *    the Hive command
-   * 2. Get the connection to a Snowflake account
-   * 3. Run the query on Snowflake
-   * @param event - the hive event
+   * Creates and executes an event for snowflake. Events may be processed in
+   * the background, but events on the same table will be processed in order.
+   * @param event - the hive event details
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
-   *                        listener
    */
-  public static void createAndExecuteEventForSnowflake(
+  public static void createAndExecuteCommandForSnowflake(
       ListenerEvent event,
       SnowflakeConf snowflakeConf)
   {
+    Preconditions.checkNotNull(event);
+
     // Obtains the proper command
     log.info("Creating the Snowflake command");
     Command command = CommandGenerator.getCommand(event, snowflakeConf);
 
+    boolean backgroundTaskEnabled = !snowflakeConf.getBoolean(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_FORCE_SYNCHRONOUS.getVarname(), false);
+    if (backgroundTaskEnabled)
+    {
+      initScheduler(snowflakeConf);
+      scheduler.enqueueMessage(command);
+    }
+    else
+    {
+      generateAndExecuteSnowflakeStatements(command, snowflakeConf);
+    }
+  }
+
+  /**
+   * Helper method. Generates commands for an event and executes those commands.
+   * Synchronous.
+   * @param command - the command to generate statements from
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   */
+  public static void generateAndExecuteSnowflakeStatements(
+      Command command,
+      SnowflakeConf snowflakeConf)
+  {
     // Generate the string queries for the command
     // Some Hive commands require more than one statement in Snowflake
     // For example, for create table, a stage must be created before the table
@@ -56,15 +79,25 @@ public class SnowflakeClient
     List<String> commandList;
     try
     {
-      commandList = command.generateCommands();
+      commandList = command.generateSqlQueries();
+      executeStatements(commandList, snowflakeConf);
     }
     catch (Exception e)
     {
       log.error("Could not generate the Snowflake commands: " + e.getMessage());
-
-      // Log a message to Snowflake with the error instead
-      commandList = new LogCommand(e).generateCommands();
     }
+  }
+
+  /**
+   * Helper method to connect to Snowflake and execute a list of queries
+   * @param commandList - The list of queries to execute
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  public static void executeStatements(List<String> commandList,
+                                       SnowflakeConf snowflakeConf)
+  {
+    log.info("Executing statements: " + String.join(", ", commandList));
 
     // Get connection
     log.info("Getting connection to the Snowflake");
@@ -74,7 +107,7 @@ public class SnowflakeClient
       commandList.forEach(commandStr ->
       {
         try (Statement statement =
-                retry(connection::createStatement, snowflakeConf))
+            retry(connection::createStatement, snowflakeConf))
         {
           log.info("Executing command: " + commandStr);
           ResultSet resultSet = retry(
@@ -91,7 +124,8 @@ public class SnowflakeClient
               }
               else
               {
-                sb.append(resultSet.getString(i) + "|");
+                sb.append(resultSet.getString(i));
+                sb.append("|");
               }
             }
             sb.append("\n");
@@ -101,26 +135,35 @@ public class SnowflakeClient
         catch (Exception e)
         {
           log.error("There was an error executing the statement: " +
-              e.getMessage());
+                        e.getMessage());
         }
       });
     }
     catch (java.sql.SQLException e)
     {
       log.error("There was an error creating the query: " +
-                e.getMessage());
-      return;
+                    e.getMessage());
     }
   }
 
+  /**
+   * (Deprecated)
+   * Utility method to connect to Snowflake and execute a query.
+   * @param commandStr - The query to execute
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   * @return The result of the executed query
+   * @throws SQLException Thrown if there was an error executing the
+   *                      statement or forming a connection.
+   */
   public static ResultSet executeStatement(String commandStr,
                                            SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try (Connection connection = retry(() -> getConnection(snowflakeConf),
                                        snowflakeConf);
-         Statement statement = retry(connection::createStatement,
-                                     snowflakeConf))
+        Statement statement = retry(connection::createStatement,
+                                    snowflakeConf))
     {
       log.info("Executing command: " + commandStr);
       ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
@@ -137,6 +180,24 @@ public class SnowflakeClient
   }
 
   /**
+   * Helper method. Initializes and starts the query scheduler
+   * @param snowflakeConf - the configuration for Snowflake Hive metastore
+   *                        listener
+   */
+  private static void initScheduler(SnowflakeConf snowflakeConf)
+  {
+    if (scheduler != null)
+    {
+      return;
+    }
+
+    int numThreads = snowflakeConf.getInt(
+        SnowflakeConf.ConfVars.SNOWFLAKE_CLIENT_THREAD_COUNT.getVarname(), 8);
+
+    scheduler = new Scheduler(numThreads, snowflakeConf);
+  }
+
+  /**
    * Get the connection to the Snowflake account.
    * First finds a Snowflake driver and connects to Snowflake using the
    * given properties.
@@ -145,8 +206,7 @@ public class SnowflakeClient
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(
-      SnowflakeConf snowflakeConf)
+  private static Connection getConnection(SnowflakeConf snowflakeConf)
       throws SQLException
   {
     try

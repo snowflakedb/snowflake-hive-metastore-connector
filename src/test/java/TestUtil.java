@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ */
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.jdbc.client.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
@@ -57,6 +60,12 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.getInt("snowflake.hive-metastore-listener.retry.count", 3))
         .thenReturn(3);
+    PowerMockito
+        .when(mockConfig.getInt("snowflake.hive-metastore-listener.client-thread-count", 8))
+        .thenReturn(1);
+    PowerMockito
+        .when(mockConfig.getBoolean("snowflake.hive-metastore-listener.force-synchronous", false))
+        .thenReturn(true);
     PowerMockito
         .when(mockConfig.get("snowflake.hive-metastore-listener.data-column-casing", "NONE"))
         .thenReturn("NONE");
