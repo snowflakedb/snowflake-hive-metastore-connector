@@ -5,14 +5,13 @@ package com.snowflake.core.commands;
 
 import com.google.common.base.Preconditions;
 import com.snowflake.core.util.StringUtil;
-import org.apache.hadoop.hive.metastore.api.Partition;
+import com.google.common.collect.Iterators;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropPartitionEvent;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * A class for the DropPartition command
@@ -28,18 +27,37 @@ public class DropPartition extends Command
   {
     super(Preconditions.checkNotNull(dropPartitionEvent).getTable());
     this.hiveTable = Preconditions.checkNotNull(dropPartitionEvent.getTable());
-    this.getPartititonsIterator = dropPartitionEvent::getPartitionIterator;
+    // Avoid 'this' constructor due to usage of hiveTable below
+    this.partititonLocationsIterator = Iterators.transform(
+        dropPartitionEvent.getPartitionIterator(),
+        partition -> StringUtil.relativizePartitionURI(
+            hiveTable,
+            Preconditions.checkNotNull(partition)));
+  }
+
+  /**
+   * Creates a DropPartition command
+   * @param hiveTable The Hive table to generate a command from
+   * @param partititonLocationsIterator iterator of the locations of the
+   *                                    partitions to drop
+   */
+  public DropPartition(Table hiveTable, Iterator<String> partititonLocationsIterator)
+  {
+    super(hiveTable);
+    this.hiveTable = Preconditions.checkNotNull(hiveTable);
+    this.partititonLocationsIterator =
+        Preconditions.checkNotNull(partititonLocationsIterator);
   }
 
   /**
    * Generates the command for drop partitions.
    * Note: Unlike Hive, Snowflake partitions are dropped using locations.
-   * @param partition Partition object to generate a command from
+   * @param partitionLocation Partition location to generate a command from
    * @return The Snowflake command generated, for example:
    *         ALTER EXTERNAL TABLE t1 DROP PARTITION LOCATION 'location'
    *         /* TABLE LOCATION = 's3n://bucketname/path/to/table' * /;
    */
-  private String generateDropPartitionCommand(Partition partition)
+  private String generateDropPartitionCommand(String partitionLocation)
   {
     return String.format(
         "ALTER EXTERNAL TABLE %1$s " +
@@ -47,7 +65,7 @@ public class DropPartition extends Command
             "LOCATION '%2$s' " +
             "/* TABLE LOCATION = '%3$s' */;",
         StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
-        StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)),
+        StringUtil.escapeSqlText(partitionLocation),
         StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
   }
 
@@ -59,11 +77,10 @@ public class DropPartition extends Command
   {
     List<String> queryList = new ArrayList<>();
 
-    Iterator<Partition> partitionIterator = this.getPartititonsIterator.get();
-    while (partitionIterator.hasNext())
+    while (partititonLocationsIterator.hasNext())
     {
-      Partition partition = partitionIterator.next();
-      queryList.add(this.generateDropPartitionCommand(partition));
+      queryList.add(
+          this.generateDropPartitionCommand(partititonLocationsIterator.next()));
     }
 
     return queryList;
@@ -71,5 +88,5 @@ public class DropPartition extends Command
 
   private final Table hiveTable;
 
-  private final Supplier<Iterator<Partition>> getPartititonsIterator;
+  private final Iterator<String> partititonLocationsIterator;
 }

@@ -36,6 +36,8 @@ public class SnowflakeConf extends Configuration
       "The role to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_DB("snowflake.jdbc.db", "db",
       "The database to use to connect to Snowflake."),
+    SNOWFLAKE_JDBC_WAREHOUSE("snowflake.jdbc.warehouse", "warehouse",
+      "The warehouse to use with Snowflake, if necessary."),
     SNOWFLAKE_JDBC_SCHEMA("snowflake.jdbc.schema", "schema",
       "The schema to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_SSL("snowflake.jdbc.ssl", "ssl",
