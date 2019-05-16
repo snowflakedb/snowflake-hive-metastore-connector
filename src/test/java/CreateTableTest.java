@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
+import com.google.common.collect.ImmutableMap;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.CreateExternalTable;
 import com.snowflake.jdbc.client.SnowflakeClient;
@@ -544,6 +545,66 @@ public class CreateTableTest
                      "partition by (partcol,name)partition_type=user_specified " +
                      "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
                  commands.get(1));
+  }
+
+  /**
+   * A test for generating a create table command with various storage schemes
+   *
+   * @throws Exception
+   */
+  @Test
+  public void storageSchemesCreateTableGenerateCommandTest() throws Exception
+  {
+    Map<String, String> expectedConversions = ImmutableMap.<String, String>builder()
+        .put("s3://path/to/table", "s3://path/to/table")
+        .put("s3n://path/to/table", "s3://path/to/table")
+        .put("s3a://path/to/table", "s3://path/to/table")
+        .put("wasb://container@account.blob.core.windows.net/path/to/table",
+             "azure://account.blob.core.windows.net/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.net/path/to/table",
+             "azure://account.blob.core.windows.net/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.gov/path/to/table",
+             "azure://account.blob.core.windows.gov/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.gov",
+             "azure://account.blob.core.windows.gov/container")
+        .put("gs://path/to/table", "gcs://path/to/table")
+        .build();
+
+    Table table = TestUtil.initializeMockTable();
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.integration",
+                             null))
+        .thenReturn("anIntegration");
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    expectedConversions.forEach(
+        (hiveUri, expectedSnowflakeUri) ->
+        {
+          table.getSd().setLocation(hiveUri);
+
+          try
+          {
+            List<String> commands = createExternalTable.generateSqlQueries();
+            assertEquals(
+                String.format("CREATE OR REPLACE STAGE someDB__t1 " +
+                                  "URL='%s'\n" +
+                                  "STORAGE_INTEGRATION=anIntegration;",
+                              expectedSnowflakeUri),
+                commands.get(0));
+          }
+          catch (SQLException ex)
+          {
+            fail(String.format(
+                "Could not generate SQL queries for scheme %s, error: %s",
+                hiveUri, ex));
+          }
+        });
   }
 
   /**
