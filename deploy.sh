@@ -52,6 +52,11 @@ $THIS_DIR/scripts/update_project_version.py public_pom.xml $project_version > ge
 
 mvn deploy ${MVN_OPTIONS[@]} -Dossrh-deploy
 
+if [ "$publish" != true ]; then
+  echo "[Info] Publish flag not set. Terminating after staging."
+  exit 0
+fi
+
 echo "[INFO] Close and Release"
 snowflake_repositories=$(mvn ${MVN_OPTIONS[@]} \
     org.sonatype.plugins:nexus-staging-maven-plugin:1.6.7:rc-list \
