@@ -1,14 +1,12 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.jdbc.client;
+package net.snowflake.hivemetastoreconnector.core;
 
 import com.google.common.base.Preconditions;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.Command;
-import com.snowflake.core.util.CommandGenerator;
-import com.snowflake.core.util.Scheduler;
-import com.snowflake.hive.listener.SnowflakeHiveListener;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
+import net.snowflake.hivemetastoreconnector.commands.Command;
 import net.snowflake.client.jdbc.internal.apache.commons.codec.binary.Base64;
 import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
@@ -218,7 +216,8 @@ public class SnowflakeClient
   {
     try
     {
-      Class.forName("com.snowflake.jdbc.client.SnowflakeClient");
+      Class.forName(
+          "net.snowflake.hivemetastoreconnector.SnowflakeClient");
     }
     catch(ClassNotFoundException e)
     {

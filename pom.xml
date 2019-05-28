@@ -57,6 +57,12 @@
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.snowflake.hivemetastoreconnector</pattern>
+                                    <shadedPattern>net.snowflake.hivemetastoreconnector.internal</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>

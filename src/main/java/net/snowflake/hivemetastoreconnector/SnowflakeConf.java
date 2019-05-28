@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.conf;
+package net.snowflake.hivemetastoreconnector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
