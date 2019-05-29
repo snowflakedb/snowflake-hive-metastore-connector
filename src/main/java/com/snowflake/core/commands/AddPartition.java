@@ -100,15 +100,22 @@ public class AddPartition extends Command
   {
     Preconditions.checkNotNull(partitions);
     Preconditions.checkArgument(!partitions.isEmpty());
+    List<String> partitionDetails = partitions.stream()
+        .map(this::generatePartitionDetails)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
+
+    if (partitionDetails.isEmpty())
+    {
+      return new LogCommand(hiveTable, "No partitions to add.")
+          .generateSqlQueries().get(0);
+    }
+
     return String.format(
         "ALTER EXTERNAL TABLE %s ADD %s /* TABLE LOCATION = '%s' */;",
         StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
-        String.join(", ",
-                    partitions.stream()
-                        .map(this::generatePartitionDetails)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .collect(Collectors.toList())),
+        String.join(", ", partitionDetails),
         StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
   }
 
