@@ -7,6 +7,7 @@ import com.google.common.base.Preconditions;
 import com.snowflake.conf.SnowflakeConf;
 import com.snowflake.core.commands.DropPartition;
 import com.snowflake.jdbc.client.SnowflakeClient;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -228,5 +229,20 @@ public class HiveSyncTool
     log.info(String.format("Found %s files in Snowflake.", snowflakePartitionLocations.size()));
 
     return new HashSet<>(snowflakePartitionLocations);
+  }
+
+  /**
+   * A convenient entry point for the sync tool. Expects Hive and Hadoop
+   * libraries to be in the classpath.
+   * See also: {@link #sync()}
+   * @param args program arguments, which are not used
+   * @throws TException thrown when encountering a Thrift exception while
+   *         communicating with the metastore or executing a metastore operation
+   */
+  public static void main(final String[] args) throws TException
+  {
+    Preconditions.checkArgument(args.length == 0,
+                                "The Hive sync tool expects no arguments.");
+    new HiveSyncTool(new HiveMetaStoreClient(new HiveConf())).sync();
   }
 }
