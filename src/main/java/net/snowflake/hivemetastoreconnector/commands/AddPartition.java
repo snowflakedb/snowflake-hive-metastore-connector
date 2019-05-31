@@ -182,7 +182,7 @@ public class AddPartition extends Command
   /**
    * Combines N add partition commands with M total partitions into
    * ceil(M / MAX_ADDED_PARTITIONS) new add partition commands. If
-   * M > N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
+   * M &gt; N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
    * Each command except the last one will have MAX_ADDED_PARTITIONS partitions.
    * Assumes that the commands are all for the same table, with no
    * modifications to the table in between
