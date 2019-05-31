@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.commands;
+package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.hive.metastore.api.Table;

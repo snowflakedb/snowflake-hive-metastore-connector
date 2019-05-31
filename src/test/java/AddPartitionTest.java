@@ -2,9 +2,8 @@
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.AddPartition;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.commands.AddPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.Partition;

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.util;
+package net.snowflake.hivemetastoreconnector.util;
 
 import java.net.URI;
 import java.util.Optional;
