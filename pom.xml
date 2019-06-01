@@ -86,8 +86,8 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
                                 <relocation>
-                                    <pattern>net.snowflake.hivemetastoreconnector</pattern>
-                                    <shadedPattern>net.snowflake.hivemetastoreconnector.internal</shadedPattern>
+                                    <pattern>net.snowflake.client.jdbc</pattern>
+                                    <shadedPattern>net.snowflake.hivemetastoreconnector.internal.jdbc</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
