@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.commands;
+package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.util.StringUtil;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.util.StringUtil;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.DropTableEvent;
 

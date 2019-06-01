@@ -1,18 +1,23 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.jdbc.client;
+package net.snowflake.hivemetastoreconnector.core;
 
 import com.google.common.base.Preconditions;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.Command;
-import com.snowflake.core.util.CommandGenerator;
-import com.snowflake.core.util.Scheduler;
-import com.snowflake.hive.listener.SnowflakeHiveListener;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
+import net.snowflake.hivemetastoreconnector.commands.Command;
+import net.snowflake.client.jdbc.internal.apache.commons.codec.binary.Base64;
+import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -211,7 +216,7 @@ public class SnowflakeClient
   {
     try
     {
-      Class.forName("com.snowflake.jdbc.client.SnowflakeClient");
+      Class.forName("com.snowflake.client.jdbc.SnowflakeDriver");
     }
     catch(ClassNotFoundException e)
     {
@@ -230,18 +235,36 @@ public class SnowflakeClient
 
         SnowflakeConf.ConfVars confVar =
             SnowflakeConf.ConfVars.findByName(conf.getKey());
-        if (confVar == null)
+        if (!confVar.isSnowflakeJDBCProperty())
         {
-          properties.put(conf.getKey(), conf.getValue());
-        }
-        else
-        {
-          properties.put(confVar.getSnowflakePropertyName(), conf.getValue());
+          return;
         }
 
+        properties.put(confVar.getSnowflakePropertyName(), conf.getValue());
       });
+
     String connectStr = snowflakeConf.get(
         SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
+
+    String privateKeyConf = snowflakeConf.get(
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PRIVATE_KEY.getVarname());
+
+    if (privateKeyConf != null)
+    {
+      try
+      {
+        Security.addProvider(new BouncyCastleProvider());
+        byte[] keyBytes = Base64.decodeBase64(privateKeyConf);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+        properties.put("privateKey", keyFactory.generatePrivate(keySpec));
+      }
+      catch (InvalidKeySpecException | NoSuchAlgorithmException e)
+      {
+        throw new IllegalArgumentException(
+            String.format("Private key is invalid: %s", e), e);
+      }
+    }
 
     return DriverManager.getConnection(connectStr, properties);
   }

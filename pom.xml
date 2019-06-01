@@ -5,10 +5,32 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.snowflake</groupId>
-    <artifactId>snowflake-hive-sdk</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>snowflake-hive-metastore-connector</artifactId>
+    <version>0.3.0</version>
+
+    <developers>
+        <developer>
+            <name>Snowflake Support Team</name>
+            <email>snowflake-java@snowflake.net</email>
+            <organization>Snowflake Computing</organization>
+            <organizationUrl>https://www.snowflake.net</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/snowflakedb/snowflake-hive-metastore-connector</connection>
+        <url>http://github.com/snowflakedb/snowflake-hive-metastore-connector/tree/master</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
 
     <build>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -18,6 +40,32 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.4</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -36,29 +84,29 @@
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                        <configuration>
-                            <keyname>${env.GPG_KEY_ID}</keyname>
-                            <passphrase>${env.GPG_KEY_PASSPHRASE}</passphrase>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.snowflake.client.jdbc</pattern>
+                                    <shadedPattern>net.snowflake.hivemetastoreconnector.internal.jdbc</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <!-- disable default maven deploy plugin since we are using gpg:sign-and-deploy-file -->
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <configuration>
+                        <skip>true</skip>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <dependencies>
@@ -96,4 +144,41 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>ossrh-deploy</id>
+            <activation>
+                <property>
+                    <name>ossrh-deploy</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>sign-and-deploy-file</goal>
+                                </goals>
+                                <configuration>
+                                    <file>target/${project.artifactId}.jar</file>
+                                    <repositoryId>ossrh</repositoryId>
+                                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                                    <pomFile>generated_public_pom.xml</pomFile>
+                                    <javadoc>target/${project.artifactId}-javadoc.jar</javadoc>
+                                    <sources>target/${project.artifactId}-sources.jar</sources>
+                                    <keyname>${env.GPG_KEY_ID}</keyname>
+                                    <passphrase>${env.GPG_KEY_PASSPHRASE}</passphrase>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
