@@ -216,8 +216,7 @@ public class SnowflakeClient
   {
     try
     {
-      Class.forName(
-          "net.snowflake.hivemetastoreconnector.SnowflakeClient");
+      Class.forName("com.snowflake.client.jdbc.SnowflakeDriver");
     }
     catch(ClassNotFoundException e)
     {
