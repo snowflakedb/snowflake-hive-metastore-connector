@@ -121,11 +121,11 @@ public class HiveToSnowflakeType
 
   /**
    * Converts a Hive URL to a Snowflake URL. Notably,
-   *  - s3://, s3n://, s3a:// -> s3://
+   *  - s3://, s3n://, s3a:// becomes s3://
    *  - wasb[s]://container@account.blob.(endpoint suffix)/...
-   *      -> azure://account.blob.(endpoint suffix)/container/...
+   *      becomes azure://account.blob.(endpoint suffix)/container/...
    *      Note: WASB with default storage (i.e. wasbs:///...) is not supported
-   *  - gs:// -> gcs://
+   *  - gs:// becomes gcs://
    * @param hiveUrl The Hive URL
    * @return The URL as understood by Snowflake
    */
