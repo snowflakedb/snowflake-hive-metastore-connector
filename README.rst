@@ -1,7 +1,7 @@
 Snowflake Hive Metastore Connector
 **********************************
 
-The Snowflake Hive metastore connector provides an easy way to query Hive-managed data via Snowflake. Once installed, the connector listens to Hive metastore events and creates the equivalent Snowflake objects.
+The Snowflake Hive metastore connector provides an easy way to query Hive-managed data via Snowflake. Once installed, the connector listens to Hive metastore events and creates the equivalent Snowflake objects. See also: https://docs.snowflake.net/manuals/user-guide/tables-external-hive.html
 
 Installation:
 =============
@@ -50,6 +50,8 @@ Installation:
    .. code-block:: bash
 
      mvn package
+   
+   Or download the jar from Maven: https://repo1.maven.org/maven2/net/snowflake/
 
 #. Copy the jar into the Hive classpath
 
