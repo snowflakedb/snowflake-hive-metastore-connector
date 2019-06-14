@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+# TODO: Remove workaround
+export SONATYPE_USER=$sonatype_user
+
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z "$GPG_KEY_ID" ]; then

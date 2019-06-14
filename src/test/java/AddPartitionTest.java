@@ -2,9 +2,8 @@
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.AddPartition;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.commands.AddPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -219,5 +218,77 @@ public class AddPartitionTest
                      "LOCATION 'sub/path2' " +
                      "/* TABLE LOCATION = 's3n://bucketname/path/to/table' */;",
                  combined.get(1).generateSqlQueries().get(2));
+  }
+
+  /**
+   * Negative test with a Hive default partition (__HIVE_DEFAULT_PARTITION__)
+   * @throws Exception
+   */
+  @Test
+  public void defaultPartitionAddPartitionGenerateCommandTest() throws Exception
+  {
+    // mock table
+    Table table = TestUtil.initializeMockTable();
+
+    // mock partition
+    Partition partition = new Partition();
+    partition.setValues(Arrays.asList("1", "__HIVE_DEFAULT_PARTITION__"));
+    partition.setSd(new StorageDescriptor());
+    partition.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    AddPartitionEvent addPartitionEvent =
+        new AddPartitionEvent(table, partition, true, mockHandler);
+
+    AddPartition addPartition = new AddPartition(addPartitionEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = addPartition.generateSqlQueries();
+    assertEquals(3, commands.size());
+    assertEquals("generated add partition command does not match " +
+                     "expected add partition command",
+                 "SELECT NULL /* No partitions to add. */;",
+                 commands.get(2));
+  }
+
+  /**
+   * Negative test with a Hive default partition (__HIVE_DEFAULT_PARTITION__)
+   * @throws Exception
+   */
+  @Test
+  public void defaultPartitionMultiAddPartitionGenerateCommandTest() throws Exception
+  {
+    // mock table
+    Table table = TestUtil.initializeMockTable();
+
+    // mock partitions
+    Partition partition1 = new Partition();
+    partition1.setValues(Arrays.asList("1", "__HIVE_DEFAULT_PARTITION__"));
+    partition1.setSd(new StorageDescriptor());
+    partition1.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
+
+    Partition partition2 = new Partition();
+    partition2.setValues(Arrays.asList("2", "testName"));
+    partition2.setSd(new StorageDescriptor());
+    partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
+
+    List<Partition> partitions = ImmutableList.of(partition1, partition2);
+
+    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+
+    AddPartitionEvent addPartitionEvent =
+        new AddPartitionEvent(table, partitions, true, mockHandler);
+
+    AddPartition addPartition = new AddPartition(addPartitionEvent, TestUtil.initializeMockConfig());
+
+    List<String> commands = addPartition.generateSqlQueries();
+    assertEquals(3, commands.size());
+    assertEquals("generated add partition command does not match " +
+                     "expected add partition command",
+                 "ALTER EXTERNAL TABLE t1 ADD PARTITION(partcol='2'," +
+                     "name='testName') LOCATION 'sub/path2' /* TABLE LOCATION" +
+                     " " +
+                     "= 's3n://bucketname/path/to/table' */;",
+                 commands.get(2));
   }
 }

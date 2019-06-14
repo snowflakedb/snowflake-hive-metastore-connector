@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.util;
+package net.snowflake.hivemetastoreconnector.core;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -9,11 +9,10 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.collect.Lists;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.AddPartition;
-import com.snowflake.core.commands.Command;
-import com.snowflake.hive.listener.SnowflakeHiveListener;
-import com.snowflake.jdbc.client.SnowflakeClient;
+import net.snowflake.hivemetastoreconnector.commands.AddPartition;
+import net.snowflake.hivemetastoreconnector.commands.Command;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

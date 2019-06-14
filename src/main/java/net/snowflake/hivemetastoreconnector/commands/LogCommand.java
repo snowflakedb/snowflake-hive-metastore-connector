@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.commands;
+package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.snowflake.core.util.StringUtil;
+import net.snowflake.hivemetastoreconnector.util.StringUtil;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.io.PrintWriter;

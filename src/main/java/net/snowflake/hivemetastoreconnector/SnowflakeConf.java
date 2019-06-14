@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.conf;
+package net.snowflake.hivemetastoreconnector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -30,6 +30,9 @@ public class SnowflakeConf extends Configuration
       "The user to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_PASSWORD("snowflake.jdbc.password", "password",
       "The password to use to connect to Snowflake."),
+    SNOWFLAKE_JDBC_PRIVATE_KEY("snowflake.jdbc.privateKey",
+      NOT_A_SF_JDBC_PROPERTY, // The JDBC property is not a string
+      "The private key to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_ACCOUNT("snowflake.jdbc.account", "account",
       "The account to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_ROLE("snowflake.jdbc.role", "role",
@@ -113,6 +116,11 @@ public class SnowflakeConf extends Configuration
     public String getSnowflakePropertyName()
     {
       return this.snowflakePropertyName;
+    }
+
+    public boolean isSnowflakeJDBCProperty()
+    {
+      return this.snowflakePropertyName != NOT_A_SF_JDBC_PROPERTY;
     }
 
     private final String varname;

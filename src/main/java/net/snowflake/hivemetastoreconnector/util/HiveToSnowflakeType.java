@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.util;
+package net.snowflake.hivemetastoreconnector.util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -120,20 +120,43 @@ public class HiveToSnowflakeType
   }
 
   /**
-   * converts a Hive URL to a Snowflake URL
+   * Converts a Hive URL to a Snowflake URL. Notably,
+   *  - s3://, s3n://, s3a:// becomes s3://
+   *  - wasb[s]://container@account.blob.(endpoint suffix)/...
+   *      becomes azure://account.blob.(endpoint suffix)/container/...
+   *      Note: WASB with default storage (i.e. wasbs:///...) is not supported
+   *  - gs:// becomes gcs://
    * @param hiveUrl The Hive URL
    * @return The URL as understood by Snowflake
    */
   public static String toSnowflakeURL(String hiveUrl)
   {
-    String snowflakeUrl;
-    // for now, only handle stages on aws
-    // hive can have prefixes 's3n' or 's3a', do some processing for Snowflake
+    int colonIndex = hiveUrl.indexOf(":");
     if (hiveUrl.startsWith("s3"))
     {
-      int colonIndex = hiveUrl.indexOf(":");
-      snowflakeUrl = hiveUrl.substring(0, 2) + hiveUrl.substring(colonIndex);
-      return snowflakeUrl;
+      return "s3" + hiveUrl.substring(colonIndex);
+    }
+
+    if (hiveUrl.startsWith("wasb"))
+    {
+      // Parse out: {schema}://{container}@{account}.{endpoint}/{path}
+      final Pattern wasbUriRegex = Pattern.compile(
+          "[^:]+://([^@]+)@([^.]+)\\.([^/]+)(.*)");
+      Matcher matcher = wasbUriRegex.matcher(hiveUrl);
+      if (matcher.matches())
+      {
+        String container = matcher.group(1);
+        String account = matcher.group(2);
+        String endpointSuffix = matcher.group(3); // prefixed with 'blob.'
+        String path = matcher.group(4); // either empty or prefixed with '/'
+        return String.format("azure://%s.%s/%s%s",
+                             account, endpointSuffix, container, path);
+      }
+    }
+
+    if (hiveUrl.startsWith("gs"))
+    {
+      return "gcs" + hiveUrl.substring(colonIndex);
     }
 
     log.error("Unable to convert URL to Snowflake URL. Skipping conversion: " + hiveUrl);
