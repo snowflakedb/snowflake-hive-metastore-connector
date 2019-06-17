@@ -638,7 +638,7 @@ public class CreateTableTest
 
     PowerMockito.mockStatic(DriverManager.class);
     PowerMockito
-        .when(DriverManager.getConnection(any(String.class),
+        .when(DriverManager.getConnection(any(),
                                           any(Properties.class)))
         .thenReturn(mockConnection);
 
@@ -648,6 +648,10 @@ public class CreateTableTest
     // Execute an event
     SnowflakeClient.createAndExecuteCommandForSnowflake(
         createTableEvent, mockConfig);
+
+    PowerMockito.verifyStatic();
+    DriverManager.getConnection(any(),
+                                any(Properties.class));
 
     // Count the number of times each query was executed. They should have
     // executed twice each.
@@ -793,7 +797,7 @@ public class CreateTableTest
         .verify(mockHiveConfig, Mockito.times(0))
         .get(any());
     Mockito
-        .verify(mockHiveConfig, Mockito.times(0));
+        .verifyZeroInteractions(mockHiveConfig);
   }
 
   /**
@@ -844,7 +848,7 @@ public class CreateTableTest
         createTableEvent, mockConfig);
 
     Mockito
-        .verify(mockStatement, Mockito.times(0)); // No retries
+        .verifyZeroInteractions(mockStatement); // No retries
     assertEquals(0, executeQueryParams.size());
   }
 }
