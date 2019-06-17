@@ -1,6 +1,15 @@
 Snowflake Hive Metastore Connector
 **********************************
 
+.. image:: http://img.shields.io/:license-Apache%202-brightgreen.svg
+    :target: http://www.apache.org/licenses/LICENSE-2.0.txt
+.. image:: https://travis-ci.com/snowflakedb/snowflake-hive-metastore-connector.svg?branch=master
+    :target: https://travis-ci.com/snowflakedb/snowflake-hive-metastore-connector
+.. image:: https://codecov.io/gh/snowflakedb/snowflake-hive-metastore-connector/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/snowflakedb/snowflake-hive-metastore-connector
+.. image:: https://maven-badges.herokuapp.com/maven-central/net.snowflake/snowflake-hive-metastore-connector/badge.svg?style=plastic   
+    :target: http://repo2.maven.org/maven2/net/snowflake/snowflake-hive-metastore-connector/
+
 The Snowflake Hive metastore connector provides an easy way to query Hive-managed data via Snowflake. Once installed, the connector listens to Hive metastore events and creates the equivalent Snowflake objects. See also: https://docs.snowflake.net/manuals/user-guide/tables-external-hive.html
 
 Installation:
