@@ -22,7 +22,9 @@ public class StringUtil
    * @param hiveTable The table to get a relative path from.
    * @param hivePartition The partition with a location relative to the table
    * @return The relative path between the table and partition.
-   * @throws IllegalArgumentException
+   * @throws IllegalArgumentException Thrown if bad arguments were provided,
+   *                                  e.g. if the partition is not a relative
+   *                                  path of the table.
    */
   public static String relativizePartitionURI(Table hiveTable,
                                               Partition hivePartition)
