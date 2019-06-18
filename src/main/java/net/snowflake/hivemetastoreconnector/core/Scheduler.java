@@ -65,6 +65,8 @@ public class Scheduler
   /**
    * Constructor for the scheduler
    * @param threadPoolCount Number of worker threads to use
+   * @param snowflakeConf The configuration for Snowflake Hive metastore
+   *                      listener
    */
   public Scheduler(int threadPoolCount, SnowflakeConf snowflakeConf)
   {

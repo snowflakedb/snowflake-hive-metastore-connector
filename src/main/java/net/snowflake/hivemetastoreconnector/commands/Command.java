@@ -44,6 +44,7 @@ public abstract class Command
   /**
    * Generates the query in a string form to be sent to Snowflake
    * @return The Snowflake queries generated
+   * @throws Exception Thrown when there is an error generating SQL queries
    */
   public abstract List<String> generateSqlQueries() throws Exception;
 }

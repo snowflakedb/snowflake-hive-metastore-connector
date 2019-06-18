@@ -20,6 +20,7 @@ public class LogCommand extends Command
 {
   /**
    * Constructor for LogCommand
+   * @param hiveTable The Hive table to generate a command from
    * @param log A string to be logged
    */
   public LogCommand(Table hiveTable, String log)
@@ -30,6 +31,7 @@ public class LogCommand extends Command
 
   /**
    * An overload of the constructor to log errors
+   * @param hiveTable The Hive table to generate a command from
    * @param error An exception to be logged as an error
    */
   public LogCommand(Table hiveTable, Exception error)
