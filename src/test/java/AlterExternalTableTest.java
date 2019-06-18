@@ -47,7 +47,7 @@ public class AlterExternalTableTest
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -57,7 +57,7 @@ public class AlterExternalTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
                      "partition_type=user_specified location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -87,7 +87,7 @@ public class AlterExternalTableTest
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -95,7 +95,7 @@ public class AlterExternalTableTest
                  "CREATE EXTERNAL TABLE IF NOT EXISTS t1(" +
                      "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
                      "partition_type=implicit location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
     assertEquals("generated alter table command does not match " +
                      "expected alter table command",
@@ -126,7 +126,7 @@ public class AlterExternalTableTest
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -136,7 +136,7 @@ public class AlterExternalTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
                      "partition_type=user_specified location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
 
     assertEquals("generated alter table command does not match " +
@@ -170,7 +170,7 @@ public class AlterExternalTableTest
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -181,7 +181,7 @@ public class AlterExternalTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
                      "partition_type=user_specified location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
 
     assertEquals("generated alter table command does not match " +
@@ -215,7 +215,7 @@ public class AlterExternalTableTest
                  "CREATE STAGE IF NOT EXISTS someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -226,7 +226,7 @@ public class AlterExternalTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)" +
                      "partition_type=user_specified location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
 
     assertEquals("generated alter table command does not match " +

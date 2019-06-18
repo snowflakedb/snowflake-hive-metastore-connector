@@ -70,7 +70,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -79,7 +79,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -112,7 +112,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -122,7 +122,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified location=@someDB__t1 " +
                      "file_format=(RECORD_DELIMITER='\\n',FIELD_DELIMITER=',',TYPE=CSV,ESCAPE='$') " +
-                     "AUTO_REFRESH=false;",
+                     "AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -155,7 +155,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -165,7 +165,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified location=@someDB__t1 " +
                      "file_format=(FIELD_DELIMITER=',',TYPE=CSV,ESCAPE='\\\\',FIELD_OPTIONALLY_ENCLOSED_BY='\\\"') " +
-                     "AUTO_REFRESH=false;",
+                     "AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -199,7 +199,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -209,7 +209,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
                      "location=@someDB__t1 file_format=(TYPE=PARQUET) " +
-                     "AUTO_REFRESH=false;",
+                     "AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -240,7 +240,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -251,7 +251,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -285,7 +285,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -297,7 +297,7 @@ public class CreateTableTest
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
                      "location=@someDB__t1 file_format=(TYPE=PARQUET) " +
-                     "AUTO_REFRESH=false;",
+                     "AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -327,7 +327,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated alter table command does not match " +
@@ -335,7 +335,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE EXTERNAL TABLE t1(" +
                      "col1 INT as (VALUE:c1::INT),col2 STRING as (VALUE:c2::STRING))" +
                      "partition_type=implicit location=@someDB__t1 " +
-                     "file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
     assertEquals("generated alter table command does not match " +
                      "expected alter table command",
@@ -376,7 +376,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -414,7 +414,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@aStage/ file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@aStage/ file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
@@ -490,7 +490,7 @@ public class CreateTableTest
                      "expected create stage command",
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
-                     "STORAGE_INTEGRATION=anIntegration;",
+                     "STORAGE_INTEGRATION=anIntegration COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
     assertEquals("generated create stage command does not match " +
                      "expected create stage command",
@@ -498,7 +498,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
     assertEquals("Unexpected number of commands generated", 2, commands.size());
   }
@@ -531,7 +531,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -543,7 +543,7 @@ public class CreateTableTest
                      "partcol INT as (parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -594,7 +594,7 @@ public class CreateTableTest
             assertEquals(
                 String.format("CREATE OR REPLACE STAGE someDB__t1 " +
                                   "URL='%s'\n" +
-                                  "STORAGE_INTEGRATION=anIntegration;",
+                                  "STORAGE_INTEGRATION=anIntegration COMMENT='Generated with Hive metastore connector (version=null).';",
                               expectedSnowflakeUri),
                 commands.get(0));
           }
@@ -664,7 +664,7 @@ public class CreateTableTest
         .executeQuery("CREATE OR REPLACE STAGE someDB__t1 " +
                           "URL='s3://bucketname/path/to/table'" +
                           "\ncredentials=(AWS_KEY_ID='accessKeyId'" +
-                          "\nAWS_SECRET_KEY='awsSecretKey');");
+                          "\nAWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';");
     Mockito
         .verify(mockStatement, Mockito.times(2))
         .executeQuery(
@@ -674,7 +674,7 @@ public class CreateTableTest
                 "partition by (partcol,name)" +
                 "partition_type=user_specified " +
                 "location=@someDB__t1 " +
-                "file_format=(TYPE=CSV) AUTO_REFRESH=false;");
+                "file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';");
   }
 
   /**
@@ -702,7 +702,7 @@ public class CreateTableTest
                  "CREATE OR REPLACE STAGE someDB__t1 " +
                      "URL='s3://bucketname/path/to/table'\n" +
                      "credentials=(AWS_KEY_ID='accessKeyId'\n" +
-                     "AWS_SECRET_KEY='awsSecretKey');",
+                     "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals(
@@ -713,7 +713,7 @@ public class CreateTableTest
           "name VARIANT as " +
           "(parse_json(metadata$external_table_partition):NAME::VARIANT))" +
           "partition by (partcol,name)partition_type=user_specified " +
-          "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+          "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 
@@ -743,7 +743,7 @@ public class CreateTableTest
                      "credentials=(/* Error generating credentials " +
                        "expression: The stage type does not exist or is " +
                        "unsupported for URL: INVALID " +
-                       "PROTOCOL://bucketname/path/to/table */);",
+                       "PROTOCOL://bucketname/path/to/table */) COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
 
     assertEquals("generated create external table command does not match " +
@@ -752,7 +752,7 @@ public class CreateTableTest
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
                      "partition by (partcol,name)partition_type=user_specified " +
-                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false;",
+                     "location=@someDB__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(1));
   }
 

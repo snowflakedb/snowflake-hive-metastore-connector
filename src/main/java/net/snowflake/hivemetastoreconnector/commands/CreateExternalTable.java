@@ -89,19 +89,32 @@ public class CreateExternalTable extends Command
    *                       for example, "STORAGE_INTEGRATION='storageIntegration'"
    * @return The generated command. An example of the command would be:
    *         CREATE OR REPLACE STAGE s1 URL='s3://bucketname/path/to/table'
-   *         STORAGE_INTEGRATION='storageIntegration';
+   *         STORAGE_INTEGRATION='storageIntegration'
+   *         COMMENT='Generated with Hive metastore connector (version=1.2.3).';
    */
   private static String generateCreateStageCommand(boolean canReplace,
                                                    String stageName,
                                                    String location,
                                                    String extraArguments)
   {
-    return String.format("CREATE %sSTAGE %s%s URL='%s'\n%s;",
+    return String.format("CREATE %sSTAGE %s%s URL='%s'\n%s " +
+                             "COMMENT='Generated with Hive metastore connector (version=%s).';",
                            (canReplace ? "OR REPLACE " : ""),
                            (canReplace ? "" : "IF NOT EXISTS "),
                            StringUtil.escapeSqlIdentifier(stageName),
                            StringUtil.escapeSqlText(location),
-                           extraArguments);
+                           extraArguments,
+                           getConnectorVersion());
+  }
+
+  /**
+   * Helper method to get the version of the connector (aka the Maven
+   * artifact version).
+   * @return The Hive metastore connector version
+   */
+  private static String getConnectorVersion()
+  {
+    return CreateExternalTable.class.getPackage().getImplementationVersion();
   }
 
   /**
@@ -190,7 +203,8 @@ public class CreateExternalTable extends Command
    *               (parse_json(metadata$external_table_partition):NAME::STRING))
    *           partition by (partcol,name)location=@s1
    *           partition_type=user_specified file_format=(TYPE=CSV)
-   *           AUTO_REFRESH=false;
+   *           AUTO_REFRESH=false
+   *           COMMENT='Generated with Hive metastore connector (version=1.2.3).';
    */
   private String generateCreateTableCommand(String location)
     throws UnsupportedOperationException
@@ -281,6 +295,12 @@ public class CreateExternalTable extends Command
 
     // All Hive-created tables have auto refresh disabled
     sb.append(" AUTO_REFRESH=false");
+
+    // Add the connector version in the comments
+    sb.append(" COMMENT='Generated with Hive metastore connector (version=");
+    sb.append(getConnectorVersion());
+    sb.append(").'");
+
     sb.append(";");
 
     return sb.toString();
