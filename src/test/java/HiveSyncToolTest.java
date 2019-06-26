@@ -2,10 +2,10 @@
  * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
  */
 import com.google.common.collect.ImmutableList;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.DropPartition;
-import com.snowflake.core.util.HiveSyncTool;
-import com.snowflake.jdbc.client.SnowflakeClient;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.commands.DropPartition;
+import net.snowflake.hivemetastoreconnector.core.HiveSyncTool;
+import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
