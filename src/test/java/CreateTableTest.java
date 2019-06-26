@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.commands.CreateExternalTable;
-import com.snowflake.jdbc.client.SnowflakeClient;
+import com.google.common.collect.ImmutableMap;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.commands.CreateExternalTable;
+import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -547,6 +548,66 @@ public class CreateTableTest
   }
 
   /**
+   * A test for generating a create table command with various storage schemes
+   *
+   * @throws Exception
+   */
+  @Test
+  public void storageSchemesCreateTableGenerateCommandTest() throws Exception
+  {
+    Map<String, String> expectedConversions = ImmutableMap.<String, String>builder()
+        .put("s3://path/to/table", "s3://path/to/table")
+        .put("s3n://path/to/table", "s3://path/to/table")
+        .put("s3a://path/to/table", "s3://path/to/table")
+        .put("wasb://container@account.blob.core.windows.net/path/to/table",
+             "azure://account.blob.core.windows.net/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.net/path/to/table",
+             "azure://account.blob.core.windows.net/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.gov/path/to/table",
+             "azure://account.blob.core.windows.gov/container/path/to/table")
+        .put("wasbs://container@account.blob.core.windows.gov",
+             "azure://account.blob.core.windows.gov/container")
+        .put("gs://path/to/table", "gcs://path/to/table")
+        .build();
+
+    Table table = TestUtil.initializeMockTable();
+    CreateTableEvent createTableEvent =
+        new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.integration",
+                             null))
+        .thenReturn("anIntegration");
+
+    CreateExternalTable createExternalTable =
+        new CreateExternalTable(createTableEvent, mockConfig);
+
+    expectedConversions.forEach(
+        (hiveUri, expectedSnowflakeUri) ->
+        {
+          table.getSd().setLocation(hiveUri);
+
+          try
+          {
+            List<String> commands = createExternalTable.generateSqlQueries();
+            assertEquals(
+                String.format("CREATE OR REPLACE STAGE someDB__t1 " +
+                                  "URL='%s'\n" +
+                                  "STORAGE_INTEGRATION=anIntegration;",
+                              expectedSnowflakeUri),
+                commands.get(0));
+          }
+          catch (SQLException ex)
+          {
+            fail(String.format(
+                "Could not generate SQL queries for scheme %s, error: %s",
+                hiveUri, ex));
+          }
+        });
+  }
+
+  /**
    * Tests the error handling of the client during a create table event
    * @throws Exception
    */
@@ -577,7 +638,7 @@ public class CreateTableTest
 
     PowerMockito.mockStatic(DriverManager.class);
     PowerMockito
-        .when(DriverManager.getConnection(any(String.class),
+        .when(DriverManager.getConnection(any(),
                                           any(Properties.class)))
         .thenReturn(mockConnection);
 
@@ -587,6 +648,10 @@ public class CreateTableTest
     // Execute an event
     SnowflakeClient.createAndExecuteCommandForSnowflake(
         createTableEvent, mockConfig);
+
+    PowerMockito.verifyStatic();
+    DriverManager.getConnection(any(),
+                                any(Properties.class));
 
     // Count the number of times each query was executed. They should have
     // executed twice each.
@@ -732,7 +797,7 @@ public class CreateTableTest
         .verify(mockHiveConfig, Mockito.times(0))
         .get(any());
     Mockito
-        .verify(mockHiveConfig, Mockito.times(0));
+        .verifyZeroInteractions(mockHiveConfig);
   }
 
   /**
@@ -783,7 +848,7 @@ public class CreateTableTest
         createTableEvent, mockConfig);
 
     Mockito
-        .verify(mockStatement, Mockito.times(0)); // No retries
+        .verifyZeroInteractions(mockStatement); // No retries
     assertEquals(0, executeQueryParams.size());
   }
 }

@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.hive.listener;
+package net.snowflake.hivemetastoreconnector;
 
 import com.google.common.base.Preconditions;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.jdbc.client.SnowflakeClient;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
 import org.apache.hadoop.hive.metastore.api.MetaException;

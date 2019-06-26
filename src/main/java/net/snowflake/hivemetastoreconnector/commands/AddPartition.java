@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.commands;
+package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.core.util.StringUtil;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.util.StringUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -99,13 +100,22 @@ public class AddPartition extends Command
   {
     Preconditions.checkNotNull(partitions);
     Preconditions.checkArgument(!partitions.isEmpty());
+    List<String> partitionDetails = partitions.stream()
+        .map(this::generatePartitionDetails)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
+
+    if (partitionDetails.isEmpty())
+    {
+      return new LogCommand(hiveTable, "No partitions to add.")
+          .generateSqlQueries().get(0);
+    }
+
     return String.format(
         "ALTER EXTERNAL TABLE %s ADD %s /* TABLE LOCATION = '%s' */;",
         StringUtil.escapeSqlIdentifier(hiveTable.getTableName()),
-        String.join(", ",
-                    partitions.stream()
-                        .map(this::generatePartitionDetails)
-                        .collect(Collectors.toList())),
+        String.join(", ", partitionDetails),
         StringUtil.escapeSqlComment(hiveTable.getSd().getLocation()));
   }
 
@@ -114,8 +124,9 @@ public class AddPartition extends Command
    * @param partition Partition object to generate a portion of a command
    * @return A portion of the command that represents the partition,
    *         for example: PARTITION(partcol='partcolname') LOCATION 'sub/path'
+   *         If the partition cannot be generated, this returns Optional.empty
    */
-  private String generatePartitionDetails(Partition partition)
+  private Optional<String> generatePartitionDetails(Partition partition)
   {
     List<FieldSchema> partitionKeys = hiveTable.getPartitionKeys();
     List<String> partitionValues = partition.getValues();
@@ -132,8 +143,7 @@ public class AddPartition extends Command
       // skip this partition instead.
       if ("__HIVE_DEFAULT_PARTITION__".equalsIgnoreCase(partitionValues.get(i)))
       {
-        return new LogCommand(hiveTable,
-            "Cannot add partition __HIVE_DEFAULT_PARTITION__. Skipping.").generateSqlQueries().get(0);
+        return Optional.empty();
       }
 
       partitionDefinitions.add(
@@ -142,9 +152,10 @@ public class AddPartition extends Command
                         StringUtil.escapeSqlText(partitionValues.get(i))));
     }
 
-    return String.format("PARTITION(%s) LOCATION '%s'",
-                         String.join(",", partitionDefinitions),
-                         StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition)));
+    return Optional.of(
+        String.format("PARTITION(%s) LOCATION '%s'",
+                      String.join(",", partitionDefinitions),
+                      StringUtil.escapeSqlText(StringUtil.relativizePartitionURI(hiveTable, partition))));
   }
 
   /**
@@ -171,7 +182,7 @@ public class AddPartition extends Command
   /**
    * Combines N add partition commands with M total partitions into
    * ceil(M / MAX_ADDED_PARTITIONS) new add partition commands. If
-   * M > N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
+   * M &gt; N * MAX_ADDED_PARTITIONS, then the result will be more than N elements.
    * Each command except the last one will have MAX_ADDED_PARTITIONS partitions.
    * Assumes that the commands are all for the same table, with no
    * modifications to the table in between

@@ -1,16 +1,14 @@
 /*
- * Copyright (c) 2018 Snowflake Computing Inc. All right reserved.
+ * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
-package com.snowflake.core.commands;
+package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
-import com.snowflake.conf.SnowflakeConf;
-import com.snowflake.conf.SnowflakeConf.ConfVars;
-import com.snowflake.core.util.HiveToSnowflakeType;
-import com.snowflake.core.util.HiveToSnowflakeType.SnowflakeFileFormatType;
-import com.snowflake.core.util.StageCredentialUtil;
-import com.snowflake.core.util.StringUtil;
-import com.snowflake.jdbc.client.SnowflakeClient;
+import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeType;
+import net.snowflake.hivemetastoreconnector.util.StageCredentialUtil;
+import net.snowflake.hivemetastoreconnector.util.StringUtil;
+import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -76,8 +74,9 @@ public class CreateExternalTable extends Command
   {
     return String.format(
         "%s__%s", // double underscore
-        StringUtil.escapeSqlIdentifier(snowflakeConf.get(ConfVars.SNOWFLAKE_JDBC_DB.getVarname(),
-                                                         null)),
+        StringUtil.escapeSqlIdentifier(snowflakeConf.get(
+            SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_DB.getVarname(),
+            null)),
         StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
   }
 
@@ -118,7 +117,7 @@ public class CreateExternalTable extends Command
    */
   public static String generateColumnStr(FieldSchema columnSchema,
                                          int columnPosition,
-                                         SnowflakeFileFormatType snowflakeFileFormatType,
+                                         HiveToSnowflakeType.SnowflakeFileFormatType snowflakeFileFormatType,
                                          SnowflakeConf snowflakeConf)
   {
     String snowflakeType = HiveToSnowflakeType
@@ -128,7 +127,7 @@ public class CreateExternalTable extends Command
     sb.append(" ");
     sb.append(snowflakeType);
     sb.append(" as (VALUE:");
-    if (snowflakeFileFormatType == SnowflakeFileFormatType.CSV)
+    if (snowflakeFileFormatType == HiveToSnowflakeType.SnowflakeFileFormatType.CSV)
     {
       // For CSV, Snowflake populates VALUE with the keys c1, c2, etc. for each
       // column
@@ -141,7 +140,7 @@ public class CreateExternalTable extends Command
       //       user to provide columns with casing that match the data.
       String columnName = columnSchema.getName();
       String casingOverride = snowflakeConf.get(
-          ConfVars.SNOWFLAKE_DATA_COLUMN_CASING.getVarname(), "NONE");
+          SnowflakeConf.ConfVars.SNOWFLAKE_DATA_COLUMN_CASING.getVarname(), "NONE");
       if (casingOverride.equalsIgnoreCase("UPPER"))
       {
         columnName = columnName.toUpperCase();
@@ -210,7 +209,7 @@ public class CreateExternalTable extends Command
     List<FieldSchema> partCols = hiveTable.getPartitionKeys();
 
     // determine the file format type for Snowflake
-    SnowflakeFileFormatType sfFileFmtType =
+    HiveToSnowflakeType.SnowflakeFileFormatType sfFileFmtType =
         HiveToSnowflakeType.toSnowflakeFileFormatType(
           hiveTable.getSd().getSerdeInfo().getSerializationLib(),
           hiveTable.getSd().getInputFormat());
@@ -306,9 +305,9 @@ public class CreateExternalTable extends Command
   {
     String hiveTableLocation = hiveTable.getSd().getLocation();
     String integration = snowflakeConf.get(
-        ConfVars.SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
+        SnowflakeConf.ConfVars.SNOWFLAKE_INTEGRATION_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
     String stage = snowflakeConf.get(
-        ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
+        SnowflakeConf.ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname(), null);
 
     String location;
     String command;
@@ -340,7 +339,7 @@ public class CreateExternalTable extends Command
       command = null;
     }
     else if (snowflakeConf.getBoolean(
-        ConfVars.SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF.getVarname(), false))
+        SnowflakeConf.ConfVars.SNOWFLAKE_ENABLE_CREDENTIALS_FROM_HIVE_CONF.getVarname(), false))
     {
       // No stage was specified, create one
       location = generateStageName(hiveTable, snowflakeConf);
@@ -348,7 +347,8 @@ public class CreateExternalTable extends Command
           this.canReplace,
           location,
           HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation),
-          StageCredentialUtil.generateCredentialsString(hiveTableLocation, hiveConf));
+          StageCredentialUtil
+              .generateCredentialsString(hiveTableLocation, hiveConf));
     }
     else
     {
@@ -356,7 +356,7 @@ public class CreateExternalTable extends Command
           "Configuration does not specify a stage to use. Add a " +
               "configuration for %s to " +
               "specify the stage.",
-          ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname()));
+          SnowflakeConf.ConfVars.SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES.getVarname()));
     }
 
     Preconditions.checkNotNull(location);
