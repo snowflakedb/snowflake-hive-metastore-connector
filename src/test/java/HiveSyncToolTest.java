@@ -3,10 +3,11 @@
  */
 import com.google.common.collect.ImmutableList;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
-import net.snowflake.hivemetastoreconnector.commands.DropPartition;
+import net.snowflake.hivemetastoreconnector.commands.Command;
 import net.snowflake.hivemetastoreconnector.core.HiveSyncTool;
 import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -24,10 +25,11 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 
 /**
@@ -37,7 +39,8 @@ import static org.mockito.Matchers.any;
 @PowerMockIgnore("javax.management.*")
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
                     DriverManager.class, SnowflakeConf.class,
-                    SnowflakeClient.class, HiveSyncTool.class})
+                    SnowflakeClient.class, HiveSyncTool.class,
+                    HiveConf.class})
 public class HiveSyncToolTest
 {
   /**
@@ -88,9 +91,11 @@ public class HiveSyncToolTest
     Partition partition1 = new Partition();
     partition1.setSd(new StorageDescriptor());
     partition1.getSd().setLocation("s3://path/to/part1");
+    partition1.setValues(ImmutableList.of("1", "partVal"));
     Partition partition2 = new Partition();
     partition2.setSd(new StorageDescriptor());
     partition2.getSd().setLocation("s3://path/to/part2");
+    partition2.setValues(ImmutableList.of("2", "partVal"));
     List<Partition> mockPartitions1 = ImmutableList.of(partition1, partition2);
     List<Partition> mockPartitions2 = ImmutableList.of();
     PowerMockito
@@ -121,23 +126,12 @@ public class HiveSyncToolTest
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doReturn(mockResultSet).when(SnowflakeClient.class);
     SnowflakeClient.executeStatement(any(), any());
-    AtomicInteger numInvocations = new AtomicInteger();
+    List<List<String>> invocations = new ArrayList<>();
     PowerMockito.doAnswer((Answer) invocation ->
     {
       Object[] args = invocation.getArguments();
-      DropPartition cmd = (DropPartition)args[0];
-      List<String> queries = cmd.generateSqlQueries();
-      if (numInvocations.getAndIncrement() == 0)
-      {
-        assertEquals(1, queries.size());
-        assertEquals("ALTER EXTERNAL TABLE tbl1 DROP PARTITION LOCATION " +
-                         "'to/part3' /* TABLE LOCATION = 's3://path' */;",
-                     queries.get(0));
-      }
-      else
-      {
-        assertEquals(0, queries.size());
-      }
+      Command cmd = (Command)args[0];
+      invocations.add(cmd.generateSqlQueries());
       return null;
     }).when(SnowflakeClient.class);
     SnowflakeClient.generateAndExecuteSnowflakeStatements(any(), any());
@@ -145,30 +139,26 @@ public class HiveSyncToolTest
     // Run the tool
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
     PowerMockito
+        .when(mockConfig.get("snowflake.hive-metastore-listener.integration",
+                             null))
+        .thenReturn("anIntegration");
+    PowerMockito
         .whenNew(SnowflakeConf.class).withAnyArguments().thenReturn(mockConfig);
     new HiveSyncTool(mockHmsClient).sync();
 
     // Verify:
-    //  - tables touched
-    //  - partition 3 is dropped from table 1
-    //  - all partitions are touched
-    Mockito
-        .verify(mockHmsClient, Mockito.times(1))
-        .alter_table("db1", "tbl1", tbl1);
-    Mockito
-        .verify(mockHmsClient, Mockito.times(1))
-        .alter_table("db1", "tbl2", tbl2);
+    //  - tables "touched" (2 calls)
+    //  - partition 3 is dropped from table 1 (1 call)
+    //  - all partitions are "touched" (1 calls)
+    assertEquals(4, invocations.size());
 
-    assertEquals(2, numInvocations.get());
-
-    Mockito
-        .verify(mockHmsClient, Mockito.times(2))
-        .alter_partitions(any(), any(), any());
-    Mockito
-        .verify(mockHmsClient)
-        .alter_partitions("db1", "tbl1", mockPartitions1);
-    Mockito
-        .verify(mockHmsClient)
-        .alter_partitions("db1", "tbl2", mockPartitions2);
+    assertTrue(invocations.get(0).get(1).startsWith(
+        "CREATE EXTERNAL TABLE IF NOT EXISTS tbl1"));
+    assertTrue(invocations.get(1).get(0).startsWith(
+        "ALTER EXTERNAL TABLE tbl1 DROP PARTITION LOCATION 'to/part3'"));
+    assertTrue(invocations.get(2).get(2).startsWith(
+        "ALTER EXTERNAL TABLE tbl1 ADD PARTITION(partcol='1',name='partVal')"));
+    assertTrue(invocations.get(3).get(1).startsWith(
+        "CREATE EXTERNAL TABLE IF NOT EXISTS tbl2"));
   }
 }

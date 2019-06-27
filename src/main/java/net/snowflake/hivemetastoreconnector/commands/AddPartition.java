@@ -73,11 +73,11 @@ public class AddPartition extends Command
    * @param isCompact internal marker to check if this command was generated
    *                  by compaction
    */
-  protected AddPartition(Table hiveTable,
-                         Iterator<Partition> partitionsIterator,
-                         SnowflakeConf snowflakeConf,
-                         Configuration hiveConf,
-                         boolean isCompact)
+  public AddPartition(Table hiveTable,
+                      Iterator<Partition> partitionsIterator,
+                      SnowflakeConf snowflakeConf,
+                      Configuration hiveConf,
+                      boolean isCompact)
   {
     super(hiveTable);
     this.hiveTable = Preconditions.checkNotNull(hiveTable);

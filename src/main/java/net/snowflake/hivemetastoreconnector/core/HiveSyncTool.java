@@ -5,8 +5,11 @@ package net.snowflake.hivemetastoreconnector.core;
 
 import com.google.common.base.Preconditions;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.commands.AddPartition;
+import net.snowflake.hivemetastoreconnector.commands.CreateExternalTable;
 import net.snowflake.hivemetastoreconnector.commands.DropPartition;
 import net.snowflake.hivemetastoreconnector.util.StringUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -50,7 +53,7 @@ public class HiveSyncTool
    */
   public HiveSyncTool(HiveMetaStoreClient hmsClient)
   {
-    this.hmsClient = hmsClient;
+    this.hmsClient = Preconditions.checkNotNull(hmsClient);
     this.snowflakeConf = new SnowflakeConf();
   }
 
@@ -89,22 +92,43 @@ public class HiveSyncTool
       {
         Preconditions.checkNotNull(tableName);
 
-        // Do a touch on the table to fire listener events
+        // Add missing tables to Snowflake
         Table hiveTable = hmsClient.getTable(databaseName, tableName);
-        hmsClient.alter_table(databaseName, tableName, hiveTable);
+        SnowflakeClient.generateAndExecuteSnowflakeStatements(
+            new CreateExternalTable(hiveTable,
+                                    snowflakeConf,
+                                    new Configuration(), // We won't need Hive configs
+                                    false // Don't replace
+            ),
+            snowflakeConf);
 
         if (!hiveTable.getPartitionKeys().isEmpty())
         {
           // Drop extra partitions
           dropExtraPartitionsFromSnowflake(databaseName, hiveTable);
-        }
 
-        // Do a touch on all partitions to fire listener events
-        List<Partition> partitions = hmsClient.listPartitions(
-            databaseName, tableName, (short) -1 /* all partitions */);
-        log.info(String.format("Syncing %s partitions for table %s.%s",
-                               partitions.size(), tableName, databaseName));
-        hmsClient.alter_partitions(databaseName, tableName, partitions);
+          // Add the partitions
+          List<Partition> partitions = hmsClient.listPartitions(
+              databaseName, tableName, (short) -1 /* all partitions */);
+          log.info(String.format("Syncing %s partitions for table %s.%s",
+                                 partitions.size(), tableName, databaseName));
+          if (partitions.isEmpty())
+          {
+            log.info(String.format("No need to add partitions for table %s",
+                                   tableName));
+          }
+          else
+          {
+            SnowflakeClient.generateAndExecuteSnowflakeStatements(
+                new AddPartition(hiveTable,
+                                 partitions.iterator(),
+                                 snowflakeConf,
+                                 new Configuration(), // We won't need Hive configs
+                                 false // Not compact
+                ),
+                snowflakeConf);
+          }
+        }
       }
     }
     log.info("Sync complete");
@@ -157,6 +181,13 @@ public class HiveSyncTool
         .filter(location -> hivePartitions.isEmpty()
                             || !hivePartitionRegex.matcher(location).matches())
         .collect(Collectors.toList());
+
+    if (extraPartitions.isEmpty())
+    {
+      log.info(String.format("No need to drop partitions for table %s",
+                             hiveTable.getTableName()));
+      return;
+    }
 
     // Drop partitions that aren't in Hive
     log.info(String.format("Dropping %s partition locations",
