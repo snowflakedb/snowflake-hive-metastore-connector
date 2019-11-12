@@ -50,10 +50,10 @@ public class CreateExternalTable extends Command
    * @param hiveConf The Hive configuration
    * @param canReplace Whether to replace existing resources or not
    */
-  protected CreateExternalTable(Table hiveTable,
-                                SnowflakeConf snowflakeConf,
-                                Configuration hiveConf,
-                                boolean canReplace)
+  public CreateExternalTable(Table hiveTable,
+                             SnowflakeConf snowflakeConf,
+                             Configuration hiveConf,
+                             boolean canReplace)
   {
     super(hiveTable);
     this.hiveTable = Preconditions.checkNotNull(hiveTable);

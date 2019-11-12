@@ -37,7 +37,7 @@ public class AlterExternalTableTest
     Table table = TestUtil.initializeMockTable();
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
-                                                          true, true, mockHandler);
+                                                          true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -77,7 +77,7 @@ public class AlterExternalTableTest
         new FieldSchema("col2", "string", null)));
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
-                                                          true, true, mockHandler);
+                                                          true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -116,7 +116,7 @@ public class AlterExternalTableTest
     newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, true, mockHandler);
+                                                          true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -160,7 +160,7 @@ public class AlterExternalTableTest
     Table newTable = TestUtil.initializeMockTable();
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, true, mockHandler);
+                                                          true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -205,7 +205,7 @@ public class AlterExternalTableTest
     newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
     HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, true, mockHandler);
+                                                          true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
