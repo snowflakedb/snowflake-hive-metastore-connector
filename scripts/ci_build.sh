@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 mvn install -DskipTests=true --batch-mode --show-version
 
 PARAMS=()
