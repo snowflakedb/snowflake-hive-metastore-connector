@@ -55,6 +55,9 @@ $THIS_DIR/scripts/update_project_version.py public_pom.xml $project_version > ge
 
 mvn deploy ${MVN_OPTIONS[@]} -Dossrh-deploy
 
+# Run WhiteSource script
+whitesource/run_whitesource.sh
+
 if [ "$publish" != true ]; then
   echo "[Info] Publish flag not set. Terminating after staging."
   exit 0
