@@ -17,7 +17,7 @@ SCAN_DIRECTORIES=$PWD
 PROD_BRANCH="master"
 
 # Please refer to product naming convension on whitesource integration guide
-PRODUCT_NAME="PRODUCT_NAME"
+PRODUCT_NAME="snowflake-hive-metastore-connector"
 
 # PROJECT_NAME is your project's name or repo name if your project spans multiple repositories
 PROJECT_NAME=${GIT_BRANCH}
