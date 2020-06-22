@@ -2,13 +2,12 @@ sudo: false
 language: java
 matrix:
   include:
-    - jdk: openjdk8
-
+  - jdk: openjdk8
 env:
+  global:
   - JACOCO_COVERAGE=true
-
+  - secure: pbiZsKYZzUybHg1H7piQ1D3kWu6PomSbsUQlVRDsn/Lsdx8iBBZ1UnqLK4Jb0oBPOOmyPQ4L7NKOP6ogxUmSYGQz4oqiDuB/OQ4eGCEx+s0R8SOVx9BTP5LpCjNFEbylP+1lw25jvEVXdKJAX7G7dbSLiUd60xERAXact5toTiuVRZv7T/HL8liowLGIn3TyVthreDbBa96+V7QKiv+kOlyulaW0I29y9BkWLTy4kowHlJ0MDcKaOb+c3afVZhvIvbAqkNCpJ3bVpYpSxH1h8+K/j+gbW1xBYfS2j/e69f7xrQOiApCL0u9R8QQioVR3no6XoZKmzfV9Lt2ry4QFTPrmy1jJnYFGhNXumGPgAitWxh19d7DGc/P/k6js5aKyTjopcPN+GZghm+H3lL7Rh43zIPFqj4i+uy/15iGIGSoFkPXVxs9eGwI35Q4wIAvYxR2tWeVqSfDVygAgU8CFAdNNUBeisQxSYBLAwSFuHKy2EkLYW4kufDomdRsK70yRNnf9yMLXz0xGyLrRTFTzSt2i8jXsfjfoPeM173Dc7+i+JSXaEs8A+Je5wwoiPVireQ6rWWXJFJYyX6rludFKJbZVAa1e5Pkns5Y75r3TD4nUoX2b7mOcFgwkbAFCtfaOfL9dAUVD/ExDrlComm0nQC5OEKsSFtl3wJOqRgGTQWs=
 script:
-  - "./scripts/run_travis.sh"
-
+- "./scripts/run_travis.sh"
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+- bash <(curl -s https://codecov.io/bash)

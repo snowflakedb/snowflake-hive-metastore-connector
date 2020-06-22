@@ -1,17 +1,36 @@
 #!/usr/bin/env bash
 #
 # Run whitesource for components which need versioning
-# Catch error and exit only if not -2 or 0
-#
-# If an error occurs, return an error code instead of exit -1
-set +e
-# Fail if any command in pipe fails.
-set -o pipefail 
-
-cd ${WORKSPACE}
 
 # SCAN_DIRECTORIES is a comma-separated list (as a string) of file paths which contain all source code and build artifacts for this project
-SCAN_DIRECTORIES=$PWD 
+echo "PWD:"${PWD}
+SCAN_DIRECTORIES=${PWD}
+echo "SCAN_DIRECTORIES:"$SCAN_DIRECTORIES
+
+# check if it is a travis run
+if [[ -n "$TRAVIS" ]]; then
+   export PROJECT_VERSION=${TRAVIS_COMMIT}
+   # if it is not a Pull request, replace PROJECT_NAME with branch Name
+   if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
+       echo "[INFO] Pull Request"
+       export PROJECT_NAME=PR-$TRAVIS_PULL_REQUEST
+   elif [[ "$TRAVIS_BRANCH" == "$PROD_BRANCH" ]]; then
+       echo "[INFO] Production branch"
+       export PROJECT_NAME=$PROD_BRANCH
+   else
+       echo "[INFO] Non Production branch. Skipping wss..."
+       export PROJECT_NAME=$(git rev-parse --abbrev-ref HEAD)
+   fi
+else
+   export PROJECT_VERSION=${GIT_COMMIT}
+   export PROJECT_NAME=${GIT_BRANCH}
+fi
+echo "PROJECT_VERSION:"$PROJECT_VERSION
+echo "PROJECT_NAME:"$PROJECT_NAME
+echo "GIT_COMMIT:"$GIT_COMMIT
+echo "TRAVIS_COMMIT:"$TRAVIS_COMMIT
+
+[[ -z "$WHITESOURCE_API_KEY" ]] && echo "[WARNING] No WHITESOURCE_API_KEY is set. No WhiteSource scan will occurr." && exit 0
 
 # If your PROD_BRANCH is not master, you can define it here based on the need
 PROD_BRANCH="master"
@@ -19,13 +38,7 @@ PROD_BRANCH="master"
 # Please refer to product naming convension on whitesource integration guide
 PRODUCT_NAME="snowflake-hive-metastore-connector"
 
-# PROJECT_NAME is your project's name or repo name if your project spans multiple repositories
-PROJECT_NAME=${GIT_BRANCH}
 
-if [[ -z "${JOB_BASE_NAME}" ]]; then
-   echo "[ERROR] No JOB_BASE_NAME is set. Run this on Jenkins"
-   exit 0
-fi
 
 # Download the latest whitesource unified agent to do the scanning if there is no existing one
 curl -LO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
@@ -41,15 +54,19 @@ fi
 # SCAN_CONFIG="${SCAN_DIRECTORIES}/wss-generated-file.config"
 
 # SCAN_CONFIG is the path to your whitesource configuration file
-SCAN_CONFIG="wss-agent.config"
+SCAN_CONFIG="whitesource/wss-java-maven-agent.config"
+echo "SCAN_CONFIG:"$SCAN_CONFIG
+
+echo "[INFO] Running wss.sh for ${PRODUCT_NAME}-${PROJECT_NAME} under ${SCAN_DIRECTORIES}"
 
 if [ "$GIT_BRANCH" != "$PROD_BRANCH" ]; then
+    echo "PR"
     java -jar wss-unified-agent.jar -apiKey ${WHITESOURCE_API_KEY} \
         -c ${SCAN_CONFIG} \
         -project ${PROJECT_NAME} \
         -product ${PRODUCT_NAME} \
         -d ${SCAN_DIRECTORIES} \
-        -projectVersion ${GIT_COMMIT}
+        -projectVersion ${PROJECT_VERSION}
     ERR=$?
     if [[ "$ERR" != "254" && "$ERR" != "0" ]]; then
         echo "failed to run whitesource scanning with feature branch"
@@ -57,12 +74,13 @@ if [ "$GIT_BRANCH" != "$PROD_BRANCH" ]; then
         # exit 1
     fi 
 else
+    echo "PRODUCTION"
     java -jar wss-unified-agent.jar -apiKey ${WHITESOURCE_API_KEY} \
         -c ${SCAN_CONFIG} \
         -project ${PROJECT_NAME} \
         -product ${PRODUCT_NAME} \
         -d ${SCAN_DIRECTORIES} \
-        -projectVersion ${GIT_COMMIT} \
+        -projectVersion ${PROJECT_VERSION} \
         -offline true
         ERR=$?
         if [[ "$ERR" != "254" && "$ERR" != "0" ]]; then
@@ -86,7 +104,7 @@ else
         -c ${SCAN_CONFIG} \
         -project ${PROJECT_NAME} \
         -product ${PRODUCT_NAME} \
-        -projectVersion ${GIT_COMMIT} \
+        -projectVersion ${PROJECT_VERSION} \
         -requestFiles whitesource/update-request.txt
         ERR=$?
         if [[ "$ERR" != "254" && "$ERR" != "0" ]]; then

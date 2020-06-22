@@ -9,3 +9,8 @@ echo "JDK Version: $TRAVIS_JDK_VERSION"
 # verify phase is after test/integration-test phase, which means both unit test
 # and integration test will be run
 mvn "${PARAMS[@]}" verify --batch-mode
+
+./whitesource/run_whitesource.sh 
+
+mvn clean # Cleanup
+
