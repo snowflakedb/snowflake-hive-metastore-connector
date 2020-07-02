@@ -7,6 +7,9 @@ echo "PWD:"${PWD}
 SCAN_DIRECTORIES=${PWD}
 echo "SCAN_DIRECTORIES:"$SCAN_DIRECTORIES
 
+# If your PROD_BRANCH is not master, you can define it here based on the need
+PROD_BRANCH="master"
+
 # check if it is a travis run
 if [[ -n "$TRAVIS" ]]; then
    export PROJECT_VERSION=${TRAVIS_COMMIT}
@@ -19,7 +22,7 @@ if [[ -n "$TRAVIS" ]]; then
        export PROJECT_NAME=$PROD_BRANCH
    else
        echo "[INFO] Non Production branch. Skipping wss..."
-       export PROJECT_NAME=$(git rev-parse --abbrev-ref HEAD)
+       export PROJECT_NAME=
    fi
 else
    export PROJECT_VERSION=${GIT_COMMIT}
@@ -32,13 +35,13 @@ echo "TRAVIS_COMMIT:"$TRAVIS_COMMIT
 
 [[ -z "$WHITESOURCE_API_KEY" ]] && echo "[WARNING] No WHITESOURCE_API_KEY is set. No WhiteSource scan will occurr." && exit 0
 
-# If your PROD_BRANCH is not master, you can define it here based on the need
-PROD_BRANCH="master"
-
 # Please refer to product naming convension on whitesource integration guide
-PRODUCT_NAME="snowflake-hive-metastore-connector"
+PRODUCT_NAME="snowflake-ingest-java"
 
-
+#if [[ -z "${JOB_BASE_NAME}" ]]; then
+#   echo "[ERROR] No JOB_BASE_NAME is set. Run this on Jenkins"
+#   exit 0
+#fi
 
 # Download the latest whitesource unified agent to do the scanning if there is no existing one
 curl -LO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
@@ -54,12 +57,12 @@ fi
 # SCAN_CONFIG="${SCAN_DIRECTORIES}/wss-generated-file.config"
 
 # SCAN_CONFIG is the path to your whitesource configuration file
-SCAN_CONFIG="whitesource/wss-java-maven-agent.config"
+SCAN_CONFIG="scripts/wss-java-maven-agent.config"
 echo "SCAN_CONFIG:"$SCAN_CONFIG
 
 echo "[INFO] Running wss.sh for ${PRODUCT_NAME}-${PROJECT_NAME} under ${SCAN_DIRECTORIES}"
 
-if [ "$GIT_BRANCH" != "$PROD_BRANCH" ]; then
+if [ "$PROJECT_NAME" != "$PROD_BRANCH" ]; then
     echo "PR"
     java -jar wss-unified-agent.jar -apiKey ${WHITESOURCE_API_KEY} \
         -c ${SCAN_CONFIG} \
