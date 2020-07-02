@@ -53,11 +53,7 @@ echo "[Info] Sign package and deploy to staging area"
 project_version=$($THIS_DIR/scripts/get_project_info_from_pom.py $THIS_DIR/pom.xml version)
 $THIS_DIR/scripts/update_project_version.py public_pom.xml $project_version > generated_public_pom.xml
 
-# For now, don't deploy until WhiteSource changes have been validated
-mvn package ${MVN_OPTIONS[@]} -Dossrh-deploy
-
-# Run WhiteSource script
-whitesource/run_whitesource.sh
+mvn deploy ${MVN_OPTIONS[@]} -Dossrh-deploy
 
 if [ "$publish" != true ]; then
   echo "[Info] Publish flag not set. Terminating after staging."
