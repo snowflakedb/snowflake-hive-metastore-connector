@@ -18,8 +18,11 @@ import java.lang.UnsupportedOperationException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A class for the CreateExternalTable command
@@ -344,9 +347,20 @@ public class CreateExternalTable extends Command
     }
     else if (stage != null)
     {
+      Set<String> schemaSet = new HashSet<>(snowflakeConf.getStringCollection(
+              SnowflakeConf.ConfVars.SNOWFLAKE_SCHEMA_LIST.getVarname())
+              .stream().map(String::toLowerCase).collect(Collectors.toSet()));
+      String defaultSchema = snowflakeConf.get(
+              SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getVarname());
+      String schema;
+      if (schemaSet.contains(hiveTable.getDbName().toLowerCase())) {
+        schema = hiveTable.getDbName();
+      } else {
+        schema = defaultSchema;
+      }
       // A stage was specified, use it
       String tableLocation = HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation);
-      String stageLocation = getStageLocationFromStageName(stage);
+      String stageLocation = getStageLocationFromStageName(stage, schema);
       String relativeLocation =
           StringUtil.relativizeURI(stageLocation, tableLocation)
               .orElseThrow(() -> new IllegalArgumentException(String.format(
@@ -383,13 +397,14 @@ public class CreateExternalTable extends Command
     return new LocationWithCreateStageQuery(location, Optional.ofNullable(command));
   }
 
-  private String getStageLocationFromStageName(String stageName)
+  private String getStageLocationFromStageName(String stageName, String schema)
       throws SQLException
   {
     // Go to Snowflake to fetch the stage location. Note: Case-insensitive
     ResultSet result = SnowflakeClient.executeStatement(
         String.format("SHOW STAGES LIKE '%s';", StringUtil.escapeSqlText(stageName)),
-        snowflakeConf);
+        snowflakeConf,
+        schema);
 
     // Find a column called 'url', which contains the stage location. There
     // should be exactly one row.

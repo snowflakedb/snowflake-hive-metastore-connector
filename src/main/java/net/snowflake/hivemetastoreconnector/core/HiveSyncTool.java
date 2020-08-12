@@ -73,6 +73,11 @@ public class HiveSyncTool
         SnowflakeConf.ConfVars.SNOWFLAKE_TABLE_FILTER_REGEX.getVarname(), null);
     Pattern databaseNameFilter = snowflakeConf.getPattern(
         SnowflakeConf.ConfVars.SNOWFLAKE_DATABASE_FILTER_REGEX.getVarname(), null);
+    Set<String> schemaSet = new HashSet<>(snowflakeConf.getStringCollection(
+            SnowflakeConf.ConfVars.SNOWFLAKE_SCHEMA_LIST.getVarname())
+            .stream().map(String::toLowerCase).collect(Collectors.toSet()));
+    String defaultSchema = snowflakeConf.get(
+            SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getVarname());
 
     log.info("Starting sync");
     List<String> databaseNames = hmsClient.getAllDatabases().stream()
@@ -83,6 +88,13 @@ public class HiveSyncTool
     for (String databaseName : databaseNames)
     {
       Preconditions.checkNotNull(databaseName);
+      log.info("Checking if " + databaseName + " is in the configured schema list.");
+      String schema;
+      if (schemaSet.contains(databaseName.toLowerCase())) {
+        schema = databaseName;
+      } else {
+        schema = defaultSchema;
+      }
       List<String> tableNames = hmsClient.getAllTables(databaseName).stream()
           .filter(table -> tableNameFilter == null || !tableNameFilter.matcher(table).matches())
           .collect(Collectors.toList());
@@ -105,7 +117,7 @@ public class HiveSyncTool
         if (!hiveTable.getPartitionKeys().isEmpty())
         {
           // Drop extra partitions
-          dropExtraPartitionsFromSnowflake(databaseName, hiveTable);
+          dropExtraPartitionsFromSnowflake(databaseName, hiveTable, schema);
 
           // Add the partitions
           List<Partition> partitions = hmsClient.listPartitions(
@@ -141,7 +153,8 @@ public class HiveSyncTool
    *         communicating with the metastore or executing a metastore operation
    */
   private void dropExtraPartitionsFromSnowflake(String databaseName,
-                                                Table hiveTable)
+                                                Table hiveTable,
+                                                String schema)
       throws TException
   {
     Preconditions.checkNotNull(databaseName);
@@ -151,7 +164,7 @@ public class HiveSyncTool
     Set<String> sfPartLocs;
     try
     {
-      sfPartLocs = getSnowflakePartitionLocations(hiveTable);
+      sfPartLocs = getSnowflakePartitionLocations(hiveTable, schema);
     }
     catch (IllegalStateException | SQLException ex)
     {
@@ -201,13 +214,14 @@ public class HiveSyncTool
    * Retrieves a set of locations for a Snowflake table that can be used as
    * an argument to the drop partition command.
    * @param hiveTable the Hive table
+   * @param schema the schema to use for the jdbc connection
    * @return a set of partition locations
    * @throws SQLException Thrown when there was an error executing a Snowflake
    *                      SQL query (if a Snowflake query must be executed).
    * @throws IllegalStateException thrown when the file paths from Snowflake
    *                               are in an unexpected format
    */
-  private Set<String> getSnowflakePartitionLocations(Table hiveTable)
+  private Set<String> getSnowflakePartitionLocations(Table hiveTable, String schema)
       throws SQLException, IllegalStateException
   {
     // Get the list of files from Snowflake. Note that this abuses the
@@ -218,7 +232,8 @@ public class HiveSyncTool
             "SELECT FILE_NAME FROM " +
                 "table(information_schema.external_table_files('%s'));",
             StringUtil.escapeSqlText(hiveTable.getTableName())),
-        snowflakeConf);
+        snowflakeConf,
+        schema);
     Preconditions.checkNotNull(filePathsResult);
     Preconditions.checkState(filePathsResult.getMetaData().getColumnCount() == 1);
 

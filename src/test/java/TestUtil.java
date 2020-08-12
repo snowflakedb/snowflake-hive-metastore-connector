@@ -36,6 +36,10 @@ public class TestUtil
         .thenReturn("accessKeyId");
     PowerMockito.when(mockConfig.get("fs.s3n.awsSecretAccessKey"))
         .thenReturn("awsSecretKey");
+    PowerMockito.when(mockConfig.get("snowflake.jdbc.schema"))
+        .thenReturn("someSchema");
+    PowerMockito.when(mockConfig.getStringCollection("snowflake.hive-metastore-listener.schemas"))
+          .thenReturn(Arrays.asList(new String[]{"someDb", "someSchema2", "DB1"}));
     PowerMockito.when(mockHandler.getConf()).thenReturn(mockConfig);
 
     return mockHandler;
@@ -51,6 +55,9 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.get("snowflake.jdbc.db", null))
         .thenReturn("someDB");
+    PowerMockito
+        .when(mockConfig.get("snowflake.jdbc.schema"))
+        .thenReturn("someSchema1");
     PowerMockito
         .when(mockConfig.getBoolean("snowflake.hive-metastore-listener.enable-creds-from-conf", false))
         .thenReturn(true);
@@ -69,6 +76,9 @@ public class TestUtil
     PowerMockito
         .when(mockConfig.get("snowflake.hive-metastore-listener.data-column-casing", "NONE"))
         .thenReturn("NONE");
+    PowerMockito
+        .when(mockConfig.getStringCollection("snowflake.hive-metastore-listener.schemas"))
+        .thenReturn(Arrays.asList(new String[]{"someDb", "someSchema2", "DB1"}));
     return mockConfig;
   }
 
@@ -123,7 +133,8 @@ public class TestUtil
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
         .when(SnowflakeClient.executeStatement(anyString(),
-                                               any(SnowflakeConf.class)))
+                                               any(SnowflakeConf.class),
+                                               anyString()))
         .thenReturn(mockRowSet);
   }
 }

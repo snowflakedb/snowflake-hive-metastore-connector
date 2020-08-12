@@ -379,6 +379,28 @@ public class CreateTableTest
                      "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
                  commands.get(0));
     assertEquals("Unexpected number of commands generated", 1, commands.size());
+
+    // Test with a hive db name not in the configured schema list
+    table.setDbName("someOtherDB");
+    createTableEvent =
+       new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    createExternalTable =
+       new CreateExternalTable(createTableEvent, mockConfig);
+
+    // Mock Snowflake client to return a location for this stage
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path");
+
+    commands = createExternalTable.generateSqlQueries();
+    assertEquals("generated create stage command does not match " +
+                     "expected create stage command",
+                 "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
+                     "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                     "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                     "partition by (partcol,name)partition_type=user_specified " +
+                     "location=@aStage/to/table file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
+                 commands.get(0));
+    assertEquals("Unexpected number of commands generated", 1, commands.size());
   }
 
   /**
