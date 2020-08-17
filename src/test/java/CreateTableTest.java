@@ -361,7 +361,7 @@ public class CreateTableTest
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path", table.getDbName());
 
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
@@ -389,7 +389,7 @@ public class CreateTableTest
        new CreateExternalTable(createTableEvent, mockConfig);
 
     // Mock Snowflake client to return a location for this stage
-    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path", "someSchema1");
 
     commands = createExternalTable.generateSqlQueries();
     assertEquals("generated create stage command does not match " +
@@ -421,7 +421,7 @@ public class CreateTableTest
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path/to/table");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path/to/table", table.getDbName());
 
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
@@ -459,7 +459,7 @@ public class CreateTableTest
         .thenReturn("aStage");
 
     // Mock Snowflake client to return a location for this stage
-    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname2");
+    TestUtil.mockSnowflakeStageWithLocation("s3://bucketname2", table.getDbName());
 
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());

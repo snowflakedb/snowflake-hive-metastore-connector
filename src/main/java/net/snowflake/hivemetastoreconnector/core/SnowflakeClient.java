@@ -9,6 +9,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
 import net.snowflake.hivemetastoreconnector.commands.Command;
 import net.snowflake.client.jdbc.internal.apache.commons.codec.binary.Base64;
 import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +24,8 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Class that uses the snowflake jdbc to connect to snowflake.
@@ -87,18 +85,10 @@ public class SnowflakeClient
     List<String> commandList;
     try
     {
-      log.info("Checking if " + command.getDatabaseName() + " is in the configured schema list.");
-      Set<String> schemaSet = new HashSet<>(snowflakeConf.getStringCollection(
-              SnowflakeConf.ConfVars.SNOWFLAKE_SCHEMA_LIST.getVarname())
-              .stream().map(String::toLowerCase).collect(Collectors.toSet()));
-      String defaultSchema = snowflakeConf.get(
-              SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getVarname());
-      String schema;
-      if (schemaSet.contains(command.getDatabaseName().toLowerCase())) {
-        schema = command.getDatabaseName();
-      } else {
-        schema = defaultSchema;
-      }
+      String schema =
+          HiveToSnowflakeSchema.getSnowflakeSchemaFromHiveSchema(
+              command.getDatabaseName(),
+              snowflakeConf);
       commandList = command.generateSqlQueries();
       executeStatements(commandList, snowflakeConf, schema);
     }

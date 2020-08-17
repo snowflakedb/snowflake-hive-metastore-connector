@@ -5,6 +5,7 @@ package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeType;
 import net.snowflake.hivemetastoreconnector.util.StageCredentialUtil;
 import net.snowflake.hivemetastoreconnector.util.StringUtil;
@@ -18,11 +19,8 @@ import java.lang.UnsupportedOperationException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A class for the CreateExternalTable command
@@ -347,17 +345,12 @@ public class CreateExternalTable extends Command
     }
     else if (stage != null)
     {
-      Set<String> schemaSet = new HashSet<>(snowflakeConf.getStringCollection(
-              SnowflakeConf.ConfVars.SNOWFLAKE_SCHEMA_LIST.getVarname())
-              .stream().map(String::toLowerCase).collect(Collectors.toSet()));
-      String defaultSchema = snowflakeConf.get(
-              SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getVarname());
-      String schema;
-      if (schemaSet.contains(hiveTable.getDbName().toLowerCase())) {
-        schema = hiveTable.getDbName();
-      } else {
-        schema = defaultSchema;
-      }
+      // find the right snowflake schema for the stage
+      String schema =
+          HiveToSnowflakeSchema.getSnowflakeSchemaFromHiveSchema(
+              hiveTable.getDbName(),
+              snowflakeConf);
+
       // A stage was specified, use it
       String tableLocation = HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation);
       String stageLocation = getStageLocationFromStageName(stage, schema);

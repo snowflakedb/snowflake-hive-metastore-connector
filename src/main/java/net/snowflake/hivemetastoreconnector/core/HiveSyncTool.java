@@ -8,6 +8,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeConf;
 import net.snowflake.hivemetastoreconnector.commands.AddPartition;
 import net.snowflake.hivemetastoreconnector.commands.CreateExternalTable;
 import net.snowflake.hivemetastoreconnector.commands.DropPartition;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import net.snowflake.hivemetastoreconnector.util.StringUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -73,11 +74,8 @@ public class HiveSyncTool
         SnowflakeConf.ConfVars.SNOWFLAKE_TABLE_FILTER_REGEX.getVarname(), null);
     Pattern databaseNameFilter = snowflakeConf.getPattern(
         SnowflakeConf.ConfVars.SNOWFLAKE_DATABASE_FILTER_REGEX.getVarname(), null);
-    Set<String> schemaSet = new HashSet<>(snowflakeConf.getStringCollection(
-            SnowflakeConf.ConfVars.SNOWFLAKE_SCHEMA_LIST.getVarname())
-            .stream().map(String::toLowerCase).collect(Collectors.toSet()));
-    String defaultSchema = snowflakeConf.get(
-            SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getVarname());
+    Set<String> schemaSet = HiveToSnowflakeSchema.getSnowflakeSchemaSet(snowflakeConf);
+    String defaultSchema = HiveToSnowflakeSchema.getSnowflakeDefaultSchema(snowflakeConf);
 
     log.info("Starting sync");
     List<String> databaseNames = hmsClient.getAllDatabases().stream()
@@ -88,13 +86,8 @@ public class HiveSyncTool
     for (String databaseName : databaseNames)
     {
       Preconditions.checkNotNull(databaseName);
-      log.info("Checking if " + databaseName + " is in the configured schema list.");
-      String schema;
-      if (schemaSet.contains(databaseName.toLowerCase())) {
-        schema = databaseName;
-      } else {
-        schema = defaultSchema;
-      }
+      String schema =
+          HiveToSnowflakeSchema.getSnowflakeSchemaFromHiveSchema(databaseName, defaultSchema, schemaSet);
       List<String> tableNames = hmsClient.getAllTables(databaseName).stream()
           .filter(table -> tableNameFilter == null || !tableNameFilter.matcher(table).matches())
           .collect(Collectors.toList());

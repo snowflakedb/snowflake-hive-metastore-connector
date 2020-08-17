@@ -9,6 +9,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.mockito.Matchers;
 import org.powermock.api.mockito.PowerMockito;
 
 import javax.sql.RowSet;
@@ -113,7 +114,7 @@ public class TestUtil
    * @param stageLocation The location that should be returned by the Snowflake
    *                      client.
    */
-  public static void mockSnowflakeStageWithLocation(String stageLocation)
+  public static void mockSnowflakeStageWithLocation(String stageLocation, String expectedSchema)
       throws Exception
   {
     ResultSetMetaData mockMetadata = PowerMockito.mock(ResultSetMetaData.class);
@@ -134,7 +135,7 @@ public class TestUtil
     PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
         .when(SnowflakeClient.executeStatement(anyString(),
                                                any(SnowflakeConf.class),
-                                               anyString()))
+                                               Matchers.eq(expectedSchema)))
         .thenReturn(mockRowSet);
   }
 }
