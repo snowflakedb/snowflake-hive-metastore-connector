@@ -370,8 +370,8 @@ public class CreateTableTest
         new CreateExternalTable(createTableEvent, mockConfig);
 
     List<String> commands = createExternalTable.generateSqlQueries();
-    assertEquals("generated create stage command does not match " +
-                     "expected create stage command",
+    assertEquals("generated create external table command does not match " +
+                    "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
@@ -392,8 +392,8 @@ public class CreateTableTest
     TestUtil.mockSnowflakeStageWithLocation("s3://bucketname/path", "someSchema1");
 
     commands = createExternalTable.generateSqlQueries();
-    assertEquals("generated create stage command does not match " +
-                     "expected create stage command",
+    assertEquals("generated create external table command does not match " +
+                     "expected create external table command",
                  "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
                      "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
                      "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
