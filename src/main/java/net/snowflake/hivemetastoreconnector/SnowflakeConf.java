@@ -42,11 +42,17 @@ public class SnowflakeConf extends Configuration
     SNOWFLAKE_JDBC_WAREHOUSE("snowflake.jdbc.warehouse", "warehouse",
       "The warehouse to use with Snowflake, if necessary."),
     SNOWFLAKE_JDBC_SCHEMA("snowflake.jdbc.schema", "schema",
-      "The schema to use to connect to Snowflake."),
+      "The default schema to use to connect to Snowflake."),
     SNOWFLAKE_JDBC_SSL("snowflake.jdbc.ssl", "ssl",
       "Use ssl to connect to Snowflake"),
     SNOWFLAKE_JDBC_CONNECTION("snowflake.jdbc.connection", "connection",
       "The Snowflake connection string."),
+    SNOWFLAKE_SCHEMA_LIST(
+            "snowflake.hive-metastore-listener.schemas", NOT_A_SF_JDBC_PROPERTY,
+            "A list of comma separated schemas, where each schema should be the " +
+                    "name of a Hive schema (database) that should be synced to the corresponding " +
+                    "Snowflake schema. If a hive schema is not listed here, the connector will " +
+                    "default to syncing that schema to the snowflake.jdbc.schema property."),
     SNOWFLAKE_STAGE_FOR_HIVE_EXTERNAL_TABLES(
         "snowflake.hive-metastore-listener.stage", NOT_A_SF_JDBC_PROPERTY,
         "The stage to use when creating external tables with Snowflake"),

@@ -5,6 +5,7 @@ package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeType;
 import net.snowflake.hivemetastoreconnector.util.StageCredentialUtil;
 import net.snowflake.hivemetastoreconnector.util.StringUtil;
@@ -344,9 +345,15 @@ public class CreateExternalTable extends Command
     }
     else if (stage != null)
     {
+      // find the right snowflake schema for the stage
+      String schema =
+          HiveToSnowflakeSchema.getSnowflakeSchemaFromHiveSchema(
+              hiveTable.getDbName(),
+              snowflakeConf);
+
       // A stage was specified, use it
       String tableLocation = HiveToSnowflakeType.toSnowflakeURL(hiveTableLocation);
-      String stageLocation = getStageLocationFromStageName(stage);
+      String stageLocation = getStageLocationFromStageName(stage, schema);
       String relativeLocation =
           StringUtil.relativizeURI(stageLocation, tableLocation)
               .orElseThrow(() -> new IllegalArgumentException(String.format(
@@ -383,13 +390,14 @@ public class CreateExternalTable extends Command
     return new LocationWithCreateStageQuery(location, Optional.ofNullable(command));
   }
 
-  private String getStageLocationFromStageName(String stageName)
+  private String getStageLocationFromStageName(String stageName, String schema)
       throws SQLException
   {
     // Go to Snowflake to fetch the stage location. Note: Case-insensitive
     ResultSet result = SnowflakeClient.executeStatement(
         String.format("SHOW STAGES LIKE '%s';", StringUtil.escapeSqlText(stageName)),
-        snowflakeConf);
+        snowflakeConf,
+        schema);
 
     // Find a column called 'url', which contains the stage location. There
     // should be exactly one row.

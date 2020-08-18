@@ -125,7 +125,7 @@ public class HiveSyncToolTest
         .thenReturn(mockMetaData);
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito.doReturn(mockResultSet).when(SnowflakeClient.class);
-    SnowflakeClient.executeStatement(any(), any());
+    SnowflakeClient.executeStatement(any(), any(), any());
     List<List<String>> invocations = new ArrayList<>();
     PowerMockito.doAnswer((Answer) invocation ->
     {

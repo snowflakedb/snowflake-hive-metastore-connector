@@ -9,6 +9,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
 import net.snowflake.hivemetastoreconnector.commands.Command;
 import net.snowflake.client.jdbc.internal.apache.commons.codec.binary.Base64;
 import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
+import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +85,12 @@ public class SnowflakeClient
     List<String> commandList;
     try
     {
+      String schema =
+          HiveToSnowflakeSchema.getSnowflakeSchemaFromHiveSchema(
+              command.getDatabaseName(),
+              snowflakeConf);
       commandList = command.generateSqlQueries();
-      executeStatements(commandList, snowflakeConf);
+      executeStatements(commandList, snowflakeConf, schema);
     }
     catch (Exception e)
     {
@@ -98,16 +103,18 @@ public class SnowflakeClient
    * @param commandList - The list of queries to execute
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
+   * @param schema - the schema to use for the jdbc connection
    */
   public static void executeStatements(List<String> commandList,
-                                       SnowflakeConf snowflakeConf)
+                                       SnowflakeConf snowflakeConf,
+                                       String schema)
   {
     log.info("Executing statements: " + String.join(", ", commandList));
 
     // Get connection
     log.info("Getting connection to the Snowflake");
     try (Connection connection = retry(
-        () -> getConnection(snowflakeConf), snowflakeConf))
+        () -> getConnection(snowflakeConf, schema), snowflakeConf))
     {
       commandList.forEach(commandStr ->
       {
@@ -157,15 +164,17 @@ public class SnowflakeClient
    * @param commandStr - The query to execute
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
+   * @param schema - the schema to use for the jdbc connection
    * @return The result of the executed query
    * @throws SQLException Thrown if there was an error executing the
    *                      statement or forming a connection.
    */
   public static ResultSet executeStatement(String commandStr,
-                                           SnowflakeConf snowflakeConf)
+                                           SnowflakeConf snowflakeConf,
+                                           String schema)
       throws SQLException
   {
-    try (Connection connection = retry(() -> getConnection(snowflakeConf),
+    try (Connection connection = retry(() -> getConnection(snowflakeConf, schema),
                                        snowflakeConf);
         Statement statement = retry(connection::createStatement,
                                     snowflakeConf))
@@ -208,10 +217,11 @@ public class SnowflakeClient
    * given properties.
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
+   * @param schema - the schema to use for the connection
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(SnowflakeConf snowflakeConf)
+  private static Connection getConnection(SnowflakeConf snowflakeConf, String schema)
       throws SQLException
   {
     try
@@ -265,6 +275,8 @@ public class SnowflakeClient
             String.format("Private key is invalid: %s", e), e);
       }
     }
+
+    properties.put(SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getSnowflakePropertyName(), schema);
 
     return DriverManager.getConnection(connectStr, properties);
   }
