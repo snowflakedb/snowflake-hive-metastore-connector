@@ -161,36 +161,25 @@ public class SnowflakeClient
   /**
    * (Deprecated)
    * Utility method to connect to Snowflake and execute a query.
+   * @param connection - The connection to use
    * @param commandStr - The query to execute
    * @param snowflakeConf - the configuration for Snowflake Hive metastore
    *                        listener
-   * @param schema - the schema to use for the jdbc connection
    * @return The result of the executed query
    * @throws SQLException Thrown if there was an error executing the
    *                      statement or forming a connection.
    */
-  public static ResultSet executeStatement(String commandStr,
-                                           SnowflakeConf snowflakeConf,
-                                           String schema)
+  public static ResultSet executeStatement(Connection connection,
+                                           String commandStr,
+                                           SnowflakeConf snowflakeConf)
       throws SQLException
   {
-    try (Connection connection = retry(() -> getConnection(snowflakeConf, schema),
-                                       snowflakeConf);
-        Statement statement = retry(connection::createStatement,
-                                    snowflakeConf))
-    {
-      log.info("Executing command: " + commandStr);
-      ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
-                                  snowflakeConf);
-      log.info("Command successfully executed");
-      return resultSet;
-    }
-    catch (SQLException e)
-    {
-      log.info("There was an error executing this statement or forming a " +
-                   "connection: " + e.getMessage());
-      throw e;
-    }
+    Statement statement = retry(connection::createStatement, snowflakeConf);
+    log.info("Executing command: " + commandStr);
+    ResultSet resultSet = retry(() -> statement.executeQuery(commandStr),
+                                snowflakeConf);
+    log.info("Command successfully executed");
+    return resultSet;
   }
 
   /**
@@ -221,7 +210,7 @@ public class SnowflakeClient
    * @return The JDBC connection
    * @throws SQLException Exception thrown when initializing the connection
    */
-  private static Connection getConnection(SnowflakeConf snowflakeConf, String schema)
+  public static Connection getConnection(SnowflakeConf snowflakeConf, String schema)
       throws SQLException
   {
     try
@@ -339,8 +328,11 @@ public class SnowflakeClient
    * @param <T> The type of object returned by the supplier
    * @param <E> The type of exception thrown by the supplier
    * @param method The method to be executed and retried on.
+   * @param snowflakeConf The snowflake configuration to use.
+   *
+   * @return The result of the method.
    */
-  private static <T, E extends Throwable> T retry(
+  public static <T, E extends Throwable> T retry(
       ThrowableSupplier<T, E> method,
       SnowflakeConf snowflakeConf)
   throws E

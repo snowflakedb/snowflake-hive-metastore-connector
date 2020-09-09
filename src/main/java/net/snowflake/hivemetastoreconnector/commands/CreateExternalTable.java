@@ -5,6 +5,7 @@ package net.snowflake.hivemetastoreconnector.commands;
 
 import com.google.common.base.Preconditions;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
+import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
 import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeSchema;
 import net.snowflake.hivemetastoreconnector.util.HiveToSnowflakeType;
 import net.snowflake.hivemetastoreconnector.util.StageCredentialUtil;
@@ -14,8 +15,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.UnsupportedOperationException;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,6 +32,9 @@ import java.util.Optional;
  */
 public class CreateExternalTable extends Command
 {
+  private static final Logger log =
+          LoggerFactory.getLogger(CreateExternalTable.class);
+
   /**
    * Creates a CreateExternalTable command
    * @param createTableEvent Event to generate a command from
@@ -394,31 +401,37 @@ public class CreateExternalTable extends Command
       throws SQLException
   {
     // Go to Snowflake to fetch the stage location. Note: Case-insensitive
-    ResultSet result = SnowflakeClient.executeStatement(
-        String.format("SHOW STAGES LIKE '%s';", StringUtil.escapeSqlText(stageName)),
-        snowflakeConf,
-        schema);
+    try (Connection connection = SnowflakeClient.retry(
+            () -> SnowflakeClient.getConnection(snowflakeConf, schema),
+            snowflakeConf)) {
+      ResultSet result = SnowflakeClient.executeStatement(
+              connection,
+              String.format("SHOW STAGES LIKE '%s';", StringUtil.escapeSqlText(stageName)),
+              snowflakeConf);
 
-    // Find a column called 'url', which contains the stage location. There
-    // should be exactly one row.
-    int urlPropertyIndex = -1;
-    for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
-    {
-      if (result.getMetaData().getColumnName(i).toUpperCase().equals("URL"))
-      {
-        urlPropertyIndex = i;
-        break;
+      // Find a column called 'url', which contains the stage location. There
+      // should be exactly one row.
+      int urlPropertyIndex = -1;
+      for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) {
+        if (result.getMetaData().getColumnName(i).toUpperCase().equals("URL")) {
+          urlPropertyIndex = i;
+          break;
+        }
       }
+      Preconditions.checkState(urlPropertyIndex != -1,
+              "Could not find URL property for stage: ", stageName);
+
+      // Call result.next() once to get to the first row.
+      Preconditions.checkState(result.next(), "Could not find stage: ", stageName);
+
+      return Preconditions.checkNotNull(
+              result.getString(urlPropertyIndex),
+              "Could not find URL for stage: ", stageName);
+    } catch (SQLException e) {
+      log.info("There was an error executing this statement or forming a " +
+              "connection: " + e.getMessage());
+      throw e;
     }
-    Preconditions.checkState(urlPropertyIndex != -1,
-                             "Could not find URL property for stage: ", stageName);
-
-    // Call result.next() once to get to the first row.
-    Preconditions.checkState(result.next(), "Could not find stage: ", stageName);
-
-    return Preconditions.checkNotNull(
-        result.getString(urlPropertyIndex),
-        "Could not find URL for stage: ", stageName);
   }
 
   /**
