@@ -19,8 +19,10 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -217,54 +219,63 @@ public class HiveSyncTool
   private Set<String> getSnowflakePartitionLocations(Table hiveTable, String schema)
       throws SQLException, IllegalStateException
   {
+    List<String> snowflakePartitionLocations = new ArrayList<>();
+
     // Get the list of files from Snowflake. Note that this abuses the
     // behavior of Snowflake's drop partition command to unregister
     // individual subdirectories instead of actual partitions.
-    ResultSet filePathsResult = SnowflakeClient.executeStatement(
-        String.format(
-            "SELECT FILE_NAME FROM " +
-                "table(information_schema.external_table_files('%s'));",
-            StringUtil.escapeSqlText(hiveTable.getTableName())),
-        snowflakeConf,
-        schema);
-    Preconditions.checkNotNull(filePathsResult);
-    Preconditions.checkState(filePathsResult.getMetaData().getColumnCount() == 1);
+    try (Connection connection = SnowflakeClient.retry(
+            () -> SnowflakeClient.getConnection(snowflakeConf, schema),
+            snowflakeConf)) {
+      ResultSet filePathsResult = SnowflakeClient.executeStatement(
+              connection,
+              String.format(
+                      "SELECT FILE_NAME FROM " +
+                              "table(information_schema.external_table_files('%s'));",
+                      StringUtil.escapeSqlText(hiveTable.getTableName())),
+              snowflakeConf);
+      Preconditions.checkNotNull(filePathsResult);
+      Preconditions.checkState(filePathsResult.getMetaData().getColumnCount() == 1);
 
-    // The relevant paths have the following form:
-    // s3://<bucket>/<padding>/<partition location>/<padding>/<file name>
-    // |- Hive table --------|
-    // |- Hive partitions ------------------------|
-    //                         |- Snowflake partitions -----|
-    //               |- Snowflake files --------------------------------|
-    // To get the Snowflake partitions from the Snowflake files:
-    //  - Append the protocol and bucket
-    //  - Remove the file name
-    //  - Get the path relative to the Hive table
-    String[] hiveTableLocSplit = hiveTable.getSd().getLocation().split("/");
-    Preconditions.checkArgument(hiveTableLocSplit.length > 2);
-    String prefix = String.join("/",
-                                Arrays.asList(hiveTableLocSplit).subList(0, 3));
+      // The relevant paths have the following form:
+      // s3://<bucket>/<padding>/<partition location>/<padding>/<file name>
+      // |- Hive table --------|
+      // |- Hive partitions ------------------------|
+      //                         |- Snowflake partitions -----|
+      //               |- Snowflake files --------------------------------|
+      // To get the Snowflake partitions from the Snowflake files:
+      //  - Append the protocol and bucket
+      //  - Remove the file name
+      //  - Get the path relative to the Hive table
+      String[] hiveTableLocSplit = hiveTable.getSd().getLocation().split("/");
+      Preconditions.checkArgument(hiveTableLocSplit.length > 2);
+      String prefix = String.join("/",
+              Arrays.asList(hiveTableLocSplit).subList(0, 3));
 
-    List<String> snowflakePartitionLocations = new ArrayList<>();
-    while (filePathsResult.next())
-    {
-      // Note: Must call ResultSet.next() once to move cursor to the first row.
-      //       Also, column indices are 1-based.
-      String filePath = filePathsResult.getString(1);
+      while (filePathsResult.next()) {
+        // Note: Must call ResultSet.next() once to move cursor to the first row.
+        //       Also, column indices are 1-based.
+        String filePath = filePathsResult.getString(1);
 
-      Preconditions.checkState(filePath.contains("/"),
-          String.format("No directories to partition on. Path: %s.", filePath));
+        Preconditions.checkState(filePath.contains("/"),
+                String.format("No directories to partition on. Path: %s.", filePath));
 
-      String absFilePath = prefix + "/" + filePath.substring(0,
-                                                             filePath.lastIndexOf("/"));
-      Optional<String> partitionLocation = StringUtil.relativizeURI(
-          hiveTable.getSd().getLocation(), absFilePath);
-      Preconditions.checkState(partitionLocation.isPresent(),
-          String.format("Could not relativize %s with %s",
+        String absFilePath = prefix + "/" + filePath.substring(0,
+                filePath.lastIndexOf("/"));
+        Optional<String> partitionLocation = StringUtil.relativizeURI(
+                hiveTable.getSd().getLocation(), absFilePath);
+        Preconditions.checkState(partitionLocation.isPresent(),
+                String.format("Could not relativize %s with %s",
                         hiveTable.getSd().getLocation(), absFilePath));
 
-      snowflakePartitionLocations.add(partitionLocation.get());
+        snowflakePartitionLocations.add(partitionLocation.get());
+      }
+    } catch (SQLException e) {
+      log.info("There was an error executing this statement or forming a " +
+              "connection: " + e.getMessage());
+      throw e;
     }
+
     log.info(String.format("Found %s files in Snowflake.", snowflakePartitionLocations.size()));
 
     return new HashSet<>(snowflakePartitionLocations);

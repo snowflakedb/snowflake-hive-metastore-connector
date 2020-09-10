@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2012-2019 Snowflake Computing Inc. All right reserved.
  */
+import net.snowflake.client.jdbc.SnowflakeConnectionV1;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
 import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
@@ -13,6 +14,7 @@ import org.mockito.Matchers;
 import org.powermock.api.mockito.PowerMockito;
 
 import javax.sql.RowSet;
+import java.sql.Connection;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -133,9 +135,12 @@ public class TestUtil
     PowerMockito.when(mockRowSet.getMetaData()).thenReturn(mockMetadata);
     PowerMockito.mockStatic(SnowflakeClient.class);
     PowerMockito // Note: clobbers mocks for SnowflakeClient.executeStatement
-        .when(SnowflakeClient.executeStatement(anyString(),
-                                               any(SnowflakeConf.class),
-                                               Matchers.eq(expectedSchema)))
+        .when(SnowflakeClient.executeStatement(any(Connection.class),
+                                               anyString(),
+                                               any(SnowflakeConf.class)))
         .thenReturn(mockRowSet);
+    PowerMockito
+            .when(SnowflakeClient.getConnection(any(SnowflakeConf.class), Matchers.eq(expectedSchema)))
+            .thenReturn(PowerMockito.mock(SnowflakeConnectionV1.class));
   }
 }
