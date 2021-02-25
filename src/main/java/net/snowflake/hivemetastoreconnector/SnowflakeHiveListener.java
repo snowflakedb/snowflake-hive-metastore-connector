@@ -99,7 +99,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
   {
     logPartitionsEvent("Event received", partitionEvent,
                        partitionEvent.getTable(), partitionEvent.getPartitionIterator());
-    if (partitionEvent.getStatus())
+    if (shouldHandle(partitionEvent, partitionEvent.getTable()))
     {
       SnowflakeClient.createAndExecuteCommandForSnowflake(partitionEvent,
                                                           snowflakeConf);
@@ -279,7 +279,7 @@ public class SnowflakeHiveListener extends MetaStoreEventListener
 
     if (databaseNameFilter != null && databaseNameFilter.matcher(table.getDbName()).matches())
     {
-      logTableEvent("Skip event, as database name did not matched filter",
+      logTableEvent("Skip event, as database name matched filter",
                     event, table);
       return false;
     }
