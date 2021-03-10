@@ -244,8 +244,7 @@ public class SnowflakeClient
 
     // JDBC password
     String snowflakePassword = snowflakeConf.getSecret(
-        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PASSWORD.getVarname(),
-        null);
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PASSWORD.getVarname());
     if (snowflakePassword != null)
     {
       properties.put(SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PASSWORD.getSnowflakePropertyName(),
@@ -254,8 +253,7 @@ public class SnowflakeClient
 
     // JDBC private key
     String privateKeyConf = snowflakeConf.getSecret(
-        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PRIVATE_KEY.getVarname(),
-        null);
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PRIVATE_KEY.getVarname());
     if (privateKeyConf != null)
     {
       try

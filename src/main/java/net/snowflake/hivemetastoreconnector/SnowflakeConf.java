@@ -142,10 +142,9 @@ public class SnowflakeConf extends Configuration
    * Convenience method. Retrieves a secret from a credential provider,
    * configuration, or default value in the respective order of preference.
    * @param name the name of the configuration
-   * @param defaultValue the default value of the secret, if any
    * @return the secret
    */
-  public String getSecret(String name, String defaultValue)
+  public String getSecret(String name)
   {
     try
     {
@@ -163,7 +162,7 @@ public class SnowflakeConf extends Configuration
       // Fallback to configuration
     }
 
-    return get(name, defaultValue);
+    return get(name, null);
   }
 
   static
