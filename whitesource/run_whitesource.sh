@@ -10,28 +10,27 @@ echo "SCAN_DIRECTORIES:"$SCAN_DIRECTORIES
 # If your PROD_BRANCH is not master, you can define it here based on the need
 PROD_BRANCH="master"
 
-# check if it is a travis run
-if [[ -n "$TRAVIS" ]]; then
-   export PROJECT_VERSION=${TRAVIS_COMMIT}
-   # if it is not a Pull request, replace PROJECT_NAME with branch Name
-   if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
-       echo "[INFO] Pull Request"
-       export PROJECT_NAME=PR-$TRAVIS_PULL_REQUEST
-   elif [[ "$TRAVIS_BRANCH" == "$PROD_BRANCH" ]]; then
-       echo "[INFO] Production branch"
-       export PROJECT_NAME=$PROD_BRANCH
-   else
-       echo "[INFO] Non Production branch. Skipping wss..."
-       export PROJECT_NAME=
-   fi
-else
-   export PROJECT_VERSION=${GIT_COMMIT}
-   export PROJECT_NAME=${GIT_BRANCH}
-fi
+
+PROJECT_VERSION=${GITHUB_SHA}
+
+BRANCH_OR_PR_NUMBER="$(echo "${GITHUB_REF}" | awk 'BEGIN { FS = "/" } ; { print $3 }')"
+
 echo "PROJECT_VERSION:"$PROJECT_VERSION
+echo "BRANCH_OR_PR_NUMBER:"$BRANCH_OR_PR_NUMBER
+
+# GITHUB_EVENT_NAME should either be 'push', or 'pull_request'
+if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+    echo "[INFO] Pull Request"
+    export PROJECT_NAME="PR-${BRANCH_OR_PR_NUMBER}"
+elif [[ "${BRANCH_OR_PR_NUMBER}" == "$PROD_BRANCH" ]]; then
+    echo "[INFO] Production branch"
+    export PROJECT_NAME="$PROD_BRANCH"
+else
+    echo "[INFO] Non Production branch. Skipping wss..."
+    export PROJECT_NAME=""
+fi
+
 echo "PROJECT_NAME:"$PROJECT_NAME
-echo "GIT_COMMIT:"$GIT_COMMIT
-echo "TRAVIS_COMMIT:"$TRAVIS_COMMIT
 
 [[ -z "$WHITESOURCE_API_KEY" ]] && echo "[WARNING] No WHITESOURCE_API_KEY is set. No WhiteSource scan will occurr." && exit 0
 

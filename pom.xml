@@ -217,10 +217,10 @@
             </build>
         </profile>
         <profile>
-            <id>travis</id>
+            <id>ghActionsIT</id>
             <activation>
                 <property>
-                    <name>travis</name>
+                    <name>ghActionsIT</name>
                 </property>
             </activation>
             <build>
