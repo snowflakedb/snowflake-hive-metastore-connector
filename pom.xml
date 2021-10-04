@@ -6,7 +6,7 @@
 
     <groupId>net.snowflake</groupId>
     <artifactId>snowflake-hive-metastore-connector</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
 
     <developers>
         <developer>
@@ -217,10 +217,10 @@
             </build>
         </profile>
         <profile>
-            <id>travis</id>
+            <id>ghActionsIT</id>
             <activation>
                 <property>
-                    <name>travis</name>
+                    <name>ghActionsIT</name>
                 </property>
             </activation>
             <build>

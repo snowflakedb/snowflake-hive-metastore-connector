@@ -138,6 +138,33 @@ public class SnowflakeConf extends Configuration
 
   private static URL snowflakeConfigUrl;
 
+  /**
+   * Convenience method. Retrieves a secret from a credential provider,
+   * configuration, or default value in the respective order of preference.
+   * @param name the name of the configuration
+   * @return the secret
+   */
+  public String getSecret(String name)
+  {
+    try
+    {
+      char[] secret = getPasswordFromCredentialProviders(name);
+      if (secret != null)
+      {
+        return String.valueOf(secret);
+      }
+    }
+    catch (Throwable t)
+    {
+      log.warn(String.format("Error reading secret named %s, falling back " +
+                                 "to configuration or default. Error: %s",
+                             name, t));
+      // Fallback to configuration
+    }
+
+    return get(name, null);
+  }
+
   static
   {
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

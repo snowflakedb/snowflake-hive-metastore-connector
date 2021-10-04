@@ -242,12 +242,18 @@ public class SnowflakeClient
         properties.put(confVar.getSnowflakePropertyName(), conf.getValue());
       });
 
-    String connectStr = snowflakeConf.get(
-        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
+    // JDBC password
+    String snowflakePassword = snowflakeConf.getSecret(
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PASSWORD.getVarname());
+    if (snowflakePassword != null)
+    {
+      properties.put(SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PASSWORD.getSnowflakePropertyName(),
+                     snowflakePassword);
+    }
 
-    String privateKeyConf = snowflakeConf.get(
+    // JDBC private key
+    String privateKeyConf = snowflakeConf.getSecret(
         SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_PRIVATE_KEY.getVarname());
-
     if (privateKeyConf != null)
     {
       try
@@ -266,6 +272,9 @@ public class SnowflakeClient
     }
 
     properties.put(SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_SCHEMA.getSnowflakePropertyName(), schema);
+    
+    String connectStr = snowflakeConf.get(
+        SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_CONNECTION.getVarname());
 
     return DriverManager.getConnection(connectStr, properties);
   }
