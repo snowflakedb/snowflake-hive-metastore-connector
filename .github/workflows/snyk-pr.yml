@@ -20,7 +20,6 @@ jobs:
         repository: snowflakedb/whitesource-actions
         token: ${{ secrets.WHITESOURCE_ACTION_TOKEN }}
         path: whitesource-actions
-        ref: fix-token
 
     - name: PR
       uses: ./whitesource-actions/snyk-pr
