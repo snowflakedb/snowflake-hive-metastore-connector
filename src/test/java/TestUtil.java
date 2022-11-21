@@ -6,6 +6,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeConf;
 import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.IHMSHandler;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -29,7 +30,7 @@ public class TestUtil
    * Helper class to initialize the Hive metastore handler, which is commonly
    * used for tests in test classes.
    */
-  public static HiveMetaStore.HMSHandler initializeMockHMSHandler()
+  public static IHMSHandler initializeMockHMSHandler()
   {
     // Mock the HMSHandler and configurations
     Configuration mockConfig = PowerMockito.mock(Configuration.class);
