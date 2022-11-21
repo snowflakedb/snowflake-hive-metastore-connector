@@ -7,6 +7,7 @@ import net.snowflake.hivemetastoreconnector.commands.CreateExternalTable;
 import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.IHMSHandler;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.CreateTableEvent;
@@ -313,7 +314,7 @@ public class CreateTableTest
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
         new FieldSchema("col2", "string", null)));
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
@@ -790,7 +791,7 @@ public class CreateTableTest
   {
     Table table = TestUtil.initializeMockTable();
 
-    HiveMetaStore.HMSHandler hmsHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler hmsHandler = TestUtil.initializeMockHMSHandler();
     CreateTableEvent createTableEvent =
         new CreateTableEvent(table, true, hmsHandler);
 

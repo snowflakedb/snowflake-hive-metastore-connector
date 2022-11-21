@@ -7,6 +7,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeHiveListener;
 import net.snowflake.hivemetastoreconnector.core.SnowflakeClient;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.IHMSHandler;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -54,7 +55,7 @@ public class SnowflakeHiveListenerTest
     table.setTableName("t1");
     table.setDbName("db1");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
@@ -87,7 +88,7 @@ public class SnowflakeHiveListenerTest
     table.setTableName("t1");
     table.setDbName("db1");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
@@ -125,7 +126,7 @@ public class SnowflakeHiveListenerTest
     table.setTableName("t1");
     table.setDbName("db1");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
@@ -163,7 +164,7 @@ public class SnowflakeHiveListenerTest
     table.setTableName("t1");
     table.setDbName("db1");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
@@ -201,7 +202,7 @@ public class SnowflakeHiveListenerTest
     table.setTableName("t1");
     table.setDbName("db1");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     DropTableEvent dropTableEvent = new DropTableEvent(table,
                                                        true, true, mockHandler);
 
@@ -253,7 +254,7 @@ public class SnowflakeHiveListenerTest
     partition3.setSd(new StorageDescriptor());
     partition3.getSd().setLocation("s3://path/to/part3");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     // Power Mockito cannot mix matchers and non-matchers. Get the config here
     SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
