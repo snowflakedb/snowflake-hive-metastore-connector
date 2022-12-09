@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
  * Tests for generating the drop table command
  */
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
+@PowerMockIgnore({"javax.management.*", "jdk.internal.reflect.*"})
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class})
 public class DropTableTest
 {
