@@ -4,6 +4,7 @@
 import net.snowflake.hivemetastoreconnector.commands.AlterExternalTable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.IHMSHandler;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
@@ -35,9 +36,9 @@ public class AlterExternalTableTest
   public void basicTouchTableGenerateCommandTest() throws Exception
   {
     Table table = TestUtil.initializeMockTable();
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
-                                                          true, mockHandler);
+                                                          true, true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -75,9 +76,9 @@ public class AlterExternalTableTest
     table.getSd().setCols(Arrays.asList(
         new FieldSchema("col1", "int", null),
         new FieldSchema("col2", "string", null)));
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(table, table,
-                                                          true, mockHandler);
+                                                          true, true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -114,9 +115,9 @@ public class AlterExternalTableTest
     Table newTable = TestUtil.initializeMockTable();
     newTable.getSd().getCols().add(new FieldSchema("new1", "int", null));
     newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, mockHandler);
+                                                          true, true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -158,9 +159,9 @@ public class AlterExternalTableTest
     oldTable.getSd().getCols().add(new FieldSchema("old1", "int", null));
     oldTable.getSd().getCols().add(new FieldSchema("old2", "string", null));
     Table newTable = TestUtil.initializeMockTable();
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, mockHandler);
+                                                          true, true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 
@@ -203,9 +204,9 @@ public class AlterExternalTableTest
     Table newTable = TestUtil.initializeMockTable();
     newTable.getSd().getCols().add(new FieldSchema("new1", "int", null));
     newTable.getSd().getCols().add(new FieldSchema("new2", "string", null));
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
     AlterTableEvent alterTableEvent = new AlterTableEvent(oldTable, newTable,
-                                                          true, mockHandler);
+                                                          true, true, mockHandler);
 
     AlterExternalTable alterTable = new AlterExternalTable(alterTableEvent, TestUtil.initializeMockConfig());
 

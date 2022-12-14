@@ -6,6 +6,7 @@ import net.snowflake.hivemetastoreconnector.SnowflakeConf;
 import net.snowflake.hivemetastoreconnector.commands.AddPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStore;
+import org.apache.hadoop.hive.metastore.IHMSHandler;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -50,7 +51,7 @@ public class AddPartitionTest
     partition.setSd(new StorageDescriptor());
     partition.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent =
         new AddPartitionEvent(table, partition, true, mockHandler);
@@ -88,7 +89,7 @@ public class AddPartitionTest
     partition2.setSd(new StorageDescriptor());
     partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent = new AddPartitionEvent(
       table, Arrays.asList(partition1, partition2), true, mockHandler);
@@ -128,7 +129,7 @@ public class AddPartitionTest
     partition2.setSd(new StorageDescriptor());
     partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
         table, Collections.singletonList(partition1), true, mockHandler);
@@ -174,7 +175,7 @@ public class AddPartitionTest
     partition2.setSd(new StorageDescriptor());
     partition2.getSd().setLocation("s3n://bucketname/path/to/table/sub/path2");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent1 = new AddPartitionEvent(
         table, Collections.singletonList(partition1), true, mockHandler);
@@ -236,7 +237,7 @@ public class AddPartitionTest
     partition.setSd(new StorageDescriptor());
     partition.getSd().setLocation("s3n://bucketname/path/to/table/sub/path");
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent =
         new AddPartitionEvent(table, partition, true, mockHandler);
@@ -274,7 +275,7 @@ public class AddPartitionTest
 
     List<Partition> partitions = ImmutableList.of(partition1, partition2);
 
-    HiveMetaStore.HMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
+    IHMSHandler mockHandler = TestUtil.initializeMockHMSHandler();
 
     AddPartitionEvent addPartitionEvent =
         new AddPartitionEvent(table, partitions, true, mockHandler);
