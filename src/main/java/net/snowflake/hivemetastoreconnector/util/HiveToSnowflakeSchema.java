@@ -39,7 +39,13 @@ public class HiveToSnowflakeSchema {
         if (snowflakeSchemaSet.contains(hiveSchema.toLowerCase())) {
             log.info(hiveSchema + " is in the configured schema list.");
             return hiveSchema;
-        } else {
+        }
+        else if (snowflakeSchemaSet.contains("\"" + hiveSchema.toLowerCase() + "\"")) {
+            // Check if the hive schema is in the Snowflake schema list with quotes to support lower case schema names
+            log.info("\"" + hiveSchema + "\"" + " is in the configured schema list.");
+            return "\"" + hiveSchema + "\"";
+        }
+        else {
             log.info(hiveSchema + " is not in the configured schema list. " +
                     "Use default schema:" + snowflakeDefaultSchema);
             return snowflakeDefaultSchema;

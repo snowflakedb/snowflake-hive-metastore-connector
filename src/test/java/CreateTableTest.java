@@ -40,7 +40,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
+@PowerMockIgnore({"javax.management.*", "jdk.internal.reflect.*"})
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
                 DriverManager.class, Consumer.class, SnowflakeClient.class})
 
@@ -873,5 +873,47 @@ public class CreateTableTest
     Mockito
         .verifyZeroInteractions(mockStatement); // No retries
     assertEquals(0, executeQueryParams.size());
+  }
+
+  /**
+   * A test for verifying stages get created when the database name is quoted
+   *
+   * @throws Exception
+   */
+  @Test
+  public void stageCreationWithQuotedDbCommandTest() throws Exception
+  {
+    Table table = TestUtil.initializeMockTable();
+
+    // Mock config
+    SnowflakeConf mockConfig = TestUtil.initializeMockConfig();
+    PowerMockito
+            .when(mockConfig.get("snowflake.jdbc.db",
+                    null))
+            .thenReturn("\"quotedDbName\"");
+
+    CreateTableEvent createTableEvent =
+            new CreateTableEvent(table, true, TestUtil.initializeMockHMSHandler());
+
+    CreateExternalTable createExternalTable =
+            new CreateExternalTable(createTableEvent, mockConfig);
+
+    List<String> commands = createExternalTable.generateSqlQueries();
+    assertEquals("generated create stage command does not match " +
+                    "expected create stage command",
+            "CREATE OR REPLACE STAGE quotedDbName__t1 " + // The quotes in the DB name are dropped when creating stage name
+                    "URL='s3://bucketname/path/to/table'\n" +
+                    "credentials=(AWS_KEY_ID='accessKeyId'\n" +
+                    "AWS_SECRET_KEY='awsSecretKey') COMMENT='Generated with Hive metastore connector (version=null).';",
+            commands.get(0));
+
+    assertEquals("generated create external table command does not match " +
+                    "expected create external table command",
+            "CREATE OR REPLACE EXTERNAL TABLE t1(partcol INT as " +
+                    "(parse_json(metadata$external_table_partition):PARTCOL::INT)," +
+                    "name STRING as (parse_json(metadata$external_table_partition):NAME::STRING))" +
+                    "partition by (partcol,name)partition_type=user_specified " +
+                    "location=@quotedDbName__t1 file_format=(TYPE=CSV) AUTO_REFRESH=false COMMENT='Generated with Hive metastore connector (version=null).';",
+            commands.get(1));
   }
 }

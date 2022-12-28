@@ -38,7 +38,7 @@ import static org.mockito.Mockito.times;
  * Tests for the SnowflakeHiveListener
  */
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
+@PowerMockIgnore({"javax.management.*", "jdk.internal.reflect.*"})
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
                     SnowflakeClient.class, SnowflakeConf.class,
                     SnowflakeHiveListener.class})
