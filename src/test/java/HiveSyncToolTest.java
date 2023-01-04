@@ -36,7 +36,7 @@ import static org.mockito.Matchers.any;
  * Unit tests for the sync tool
  */
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
+@PowerMockIgnore({"javax.management.*", "jdk.internal.reflect.*"})
 @PrepareForTest({Configuration.class, HiveMetaStore.HMSHandler.class,
                     DriverManager.class, SnowflakeConf.class,
                     SnowflakeClient.class, HiveSyncTool.class,

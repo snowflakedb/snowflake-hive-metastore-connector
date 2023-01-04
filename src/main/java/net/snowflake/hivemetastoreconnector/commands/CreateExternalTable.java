@@ -80,11 +80,11 @@ public class CreateExternalTable extends Command
   public static String generateStageName(Table hiveTable,
                                          SnowflakeConf snowflakeConf)
   {
+    String dbName = snowflakeConf.get(SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_DB.getVarname(),null);
+
     return String.format(
         "%s__%s", // double underscore
-        StringUtil.escapeSqlIdentifier(snowflakeConf.get(
-            SnowflakeConf.ConfVars.SNOWFLAKE_JDBC_DB.getVarname(),
-            null)),
+        StringUtil.escapeSqlIdentifier(dbName.replace("\"", "")), // Remove quotes in the Database name that is used to create the Stage name to prevent Snowflake exception due to escaped quotes
         StringUtil.escapeSqlIdentifier(hiveTable.getTableName()));
   }
 
