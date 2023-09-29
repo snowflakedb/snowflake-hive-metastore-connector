@@ -113,6 +113,25 @@ public class AlterExternalTable extends Command
                             .collect(Collectors.toList()))));
   }
 
+  /**
+   * Generates commands to rename table in Snowflake.
+   * @param oldHiveTable The Hive table to generate a command from
+   * @param newHiveTable The Hive table to generate a command from
+   * @return The commands generated, for example:
+   *         ALTER TABLE t1 RENAME TO t2;
+   */
+  private static List<String> generateAlterTableRename(Table oldHiveTable,
+                                                       Table newHiveTable)
+  {
+    Preconditions.checkNotNull(hiveTable);
+
+    return ImmutableList.of(
+        String.format(
+            "ALTER TABLE %s RENAME TO %s;",
+            StringUtil.escapeSqlIdentifier(oldHiveTable.getTableName()),
+            StringUtil.escapeSqlIdentifier(newHiveTable.getTableName())));
+  }
+
 
   /**
    * Generates the necessary queries on a Hive alter table event
@@ -127,7 +146,7 @@ public class AlterExternalTable extends Command
     // TODO: Add support for other alter table commands, such as rename table
     if (!oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
     {
-      return new LogCommand(oldHiveTable, "Received no-op alter table command.").generateSqlQueries();
+      return generateAlterTableRename(oldHiveTable, newHiveTable);
     }
 
     // All supported alter table events (e.g. touch) generate create statements
