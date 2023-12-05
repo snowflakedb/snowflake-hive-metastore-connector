@@ -113,6 +113,60 @@ public class AlterExternalTable extends Command
                             .collect(Collectors.toList()))));
   }
 
+  /**
+   * Generates the command for rename table
+   * @return The Snowflake command generated, for example:
+   *         ALTER TABLE IF EXISTS T1 RENAME TO T2;
+   */
+  private String generateAlterTableRenameCommand()
+  {
+    StringBuilder sb = new StringBuilder();
+
+    // rename table command
+    sb.append("ALTER TABLE IF EXISTS ");
+    sb.append(StringUtil.escapeSqlIdentifier(oldHiveTable.getTableName()));
+    sb.append(" RENAME TO ");
+    sb.append(StringUtil.escapeSqlIdentifier(newHiveTable.getTableName()));
+    sb.append(";");
+
+    return sb.toString();
+  }
+
+  /**
+   * Generates the command for rename stage
+   * @return The Snowflake command generated, for example:
+   *         ALTER STAGE IF EXISTS S1 RENAME TO S2;
+   */
+  private String generateAlterStageRenameCommand()
+  {
+    StringBuilder sb = new StringBuilder();
+
+    // rename stage command
+    sb.append("ALTER STAGE IF EXISTS ");
+    sb.append(CreateExternalTable.generateStageName(oldHiveTable, snowflakeConf));
+    sb.append(" RENAME TO ");
+    sb.append(CreateExternalTable.generateStageName(newHiveTable, snowflakeConf));
+    sb.append(";");
+
+    return sb.toString();
+  }
+
+  /**
+   * Generates the necessary queries on a hive rename table event
+   * @return The Snowflake queries generated
+   */
+  public List<String> generateAlterTableRanameSqlQueries()
+  {
+    List<String> queryList = new ArrayList<>();
+
+    String alterTableRenameQuery = generateAlterTableRenameCommand();
+    queryList.add(alterTableRenameQuery);
+
+    String alterStageRenameQuery = generateAlterStageRenameCommand();
+    queryList.add(alterStageRenameQuery);
+
+    return queryList;
+  }
 
   /**
    * Generates the necessary queries on a Hive alter table event
@@ -124,10 +178,10 @@ public class AlterExternalTable extends Command
   public List<String> generateSqlQueries()
       throws SQLException, UnsupportedOperationException
   {
-    // TODO: Add support for other alter table commands, such as rename table
+    // TODO: Add support for other alter table commands
     if (!oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
     {
-      return new LogCommand(oldHiveTable, "Received no-op alter table command.").generateSqlQueries();
+      return generateAlterTableRanameSqlQueries();
     }
 
     // All supported alter table events (e.g. touch) generate create statements
