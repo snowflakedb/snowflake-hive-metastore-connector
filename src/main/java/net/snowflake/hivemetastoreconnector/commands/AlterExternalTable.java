@@ -255,7 +255,7 @@ public class AlterExternalTable extends Command
                                                 snowflakeConf));
     }
 
-    if (!Objects.equal(oldTable.getSd().getLocation(), newTable.getSd().getLocation())) {
+    if (!Objects.equal(oldHiveTable.getSd().getLocation(), newHiveTable.getSd().getLocation())) {
       commands.addAll(generateAlterStageSetURLSqlQueries());
       commands.addAll(generateRefreshTableSqlQueries());
     }
