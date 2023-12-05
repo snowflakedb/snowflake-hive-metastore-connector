@@ -182,7 +182,7 @@ public class AlterExternalTable extends Command
   {
       return ImmutableList.of(
          String.format("ALTER EXTERNAL TABLE IF EXISTS %s REFRESH;",
-             StringUtil.escapeSqlIdentifier(newTable.getTableName())));
+             StringUtil.escapeSqlIdentifier(newHiveTable.getTableName())));
   }
 
   /**
