@@ -3,6 +3,7 @@
  */
 package net.snowflake.hivemetastoreconnector.commands;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
@@ -15,6 +16,7 @@ import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
 
 import java.lang.UnsupportedOperationException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -168,6 +170,21 @@ public class AlterExternalTable extends Command
     return queryList;
   }
 
+  public List<String> generateAlterStageSetURLSqlQueries()
+  {
+    return ImmutableList.of(
+        String.format("ALTER STAGE IF EXISTS %s SET URL = '%s';",
+            CreateExternalTable.generateStageName(newHiveTable, snowflakeConf),
+            newHiveTable.getSd().getLocation()));
+  }
+
+  public List<String> generateRefreshTableSqlQueries()
+  {
+      return ImmutableList.of(
+         String.format("ALTER EXTERNAL TABLE IF EXISTS %s REFRESH;",
+             StringUtil.escapeSqlIdentifier(newTable.getTableName())));
+  }
+
   /**
    * Generates the necessary queries on a Hive alter table event
    * @return The Snowflake queries generated
@@ -184,13 +201,15 @@ public class AlterExternalTable extends Command
       return generateAlterTableRanameSqlQueries();
     }
 
+    List<String> commands = new ArrayList<String>();
+
     // All supported alter table events (e.g. touch) generate create statements
-    List<String> commands = new CreateExternalTable(
+    commands.addAll(new CreateExternalTable(
         oldHiveTable,
         snowflakeConf,
         hiveConf,
         false // Do not replace table
-    ).generateSqlQueries();
+    ).generateSqlQueries());
 
     // If the columns are different, generate an add/drop column event
     // TODO: Support more alter column events, including positional ones
@@ -234,6 +253,11 @@ public class AlterExternalTable extends Command
                                                 addedColumns,
                                                 0,
                                                 snowflakeConf));
+    }
+
+    if (!Objects.equal(oldTable.getSd().getLocation(), newTable.getSd().getLocation())) {
+      commands.addAll(generateAlterStageSetURLSqlQueries());
+      commands.addAll(generateRefreshTableSqlQueries());
     }
 
     return commands;
