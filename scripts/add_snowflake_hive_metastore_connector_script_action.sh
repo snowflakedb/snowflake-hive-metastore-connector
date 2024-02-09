@@ -20,10 +20,6 @@ CUSTOMHIVELIBSDIR=/usr/hdp/2.6.5.3032-3/atlas/hook/hive
 # Where the snowflake-config.xml should go (WILL VARY BY USER -- please edit)
 SNOWFLAKECONFDIR=/usr/hdp/current/hive-server2/conf/conf.server
 
-echo "Importing helper module"
-# Import helper module
-source <(wget -q -O - https://hdiconfigactions.blob.core.windows.net/linuxconfigactionmodulev01/HDInsightUtilities-v01.sh)
-
 # Check paths exist
 if [ -e $CUSTOMHIVELIBSDIR ]; then
   echo "$CUSTOMHIVELIBSDIR exists"
