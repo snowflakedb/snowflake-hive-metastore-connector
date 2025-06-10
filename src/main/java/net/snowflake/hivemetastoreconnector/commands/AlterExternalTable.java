@@ -3,6 +3,7 @@
  */
 package net.snowflake.hivemetastoreconnector.commands;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import net.snowflake.hivemetastoreconnector.SnowflakeConf;
@@ -15,6 +16,7 @@ import org.apache.hadoop.hive.metastore.events.AlterTableEvent;
 
 import java.lang.UnsupportedOperationException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -113,6 +115,75 @@ public class AlterExternalTable extends Command
                             .collect(Collectors.toList()))));
   }
 
+  /**
+   * Generates the command for rename table
+   * @return The Snowflake command generated, for example:
+   *         ALTER TABLE IF EXISTS T1 RENAME TO T2;
+   */
+  private String generateAlterTableRenameCommand()
+  {
+    StringBuilder sb = new StringBuilder();
+
+    // rename table command
+    sb.append("ALTER TABLE IF EXISTS ");
+    sb.append(StringUtil.escapeSqlIdentifier(oldHiveTable.getTableName()));
+    sb.append(" RENAME TO ");
+    sb.append(StringUtil.escapeSqlIdentifier(newHiveTable.getTableName()));
+    sb.append(";");
+
+    return sb.toString();
+  }
+
+  /**
+   * Generates the command for rename stage
+   * @return The Snowflake command generated, for example:
+   *         ALTER STAGE IF EXISTS S1 RENAME TO S2;
+   */
+  private String generateAlterStageRenameCommand()
+  {
+    StringBuilder sb = new StringBuilder();
+
+    // rename stage command
+    sb.append("ALTER STAGE IF EXISTS ");
+    sb.append(CreateExternalTable.generateStageName(oldHiveTable, snowflakeConf));
+    sb.append(" RENAME TO ");
+    sb.append(CreateExternalTable.generateStageName(newHiveTable, snowflakeConf));
+    sb.append(";");
+
+    return sb.toString();
+  }
+
+  /**
+   * Generates the necessary queries on a hive rename table event
+   * @return The Snowflake queries generated
+   */
+  public List<String> generateAlterTableRanameSqlQueries()
+  {
+    List<String> queryList = new ArrayList<>();
+
+    String alterTableRenameQuery = generateAlterTableRenameCommand();
+    queryList.add(alterTableRenameQuery);
+
+    String alterStageRenameQuery = generateAlterStageRenameCommand();
+    queryList.add(alterStageRenameQuery);
+
+    return queryList;
+  }
+
+  public List<String> generateAlterStageSetURLSqlQueries()
+  {
+    return ImmutableList.of(
+        String.format("ALTER STAGE IF EXISTS %s SET URL = '%s';",
+            CreateExternalTable.generateStageName(newHiveTable, snowflakeConf),
+            newHiveTable.getSd().getLocation()));
+  }
+
+  public List<String> generateRefreshTableSqlQueries()
+  {
+      return ImmutableList.of(
+         String.format("ALTER EXTERNAL TABLE IF EXISTS %s REFRESH;",
+             StringUtil.escapeSqlIdentifier(newHiveTable.getTableName())));
+  }
 
   /**
    * Generates the necessary queries on a Hive alter table event
@@ -124,19 +195,21 @@ public class AlterExternalTable extends Command
   public List<String> generateSqlQueries()
       throws SQLException, UnsupportedOperationException
   {
-    // TODO: Add support for other alter table commands, such as rename table
+    // TODO: Add support for other alter table commands
     if (!oldHiveTable.getTableName().equals(newHiveTable.getTableName()))
     {
-      return new LogCommand(oldHiveTable, "Received no-op alter table command.").generateSqlQueries();
+      return generateAlterTableRanameSqlQueries();
     }
 
+    List<String> commands = new ArrayList<String>();
+
     // All supported alter table events (e.g. touch) generate create statements
-    List<String> commands = new CreateExternalTable(
+    commands.addAll(new CreateExternalTable(
         oldHiveTable,
         snowflakeConf,
         hiveConf,
         false // Do not replace table
-    ).generateSqlQueries();
+    ).generateSqlQueries());
 
     // If the columns are different, generate an add/drop column event
     // TODO: Support more alter column events, including positional ones
@@ -180,6 +253,11 @@ public class AlterExternalTable extends Command
                                                 addedColumns,
                                                 0,
                                                 snowflakeConf));
+    }
+
+    if (!Objects.equal(oldHiveTable.getSd().getLocation(), newHiveTable.getSd().getLocation())) {
+      commands.addAll(generateAlterStageSetURLSqlQueries());
+      commands.addAll(generateRefreshTableSqlQueries());
     }
 
     return commands;
